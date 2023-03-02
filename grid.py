@@ -54,7 +54,7 @@ cube_colors_list_lvl1 = np.array([
 class Grid:
     def __init__(self,n_grid,dim,heightmap):
         self.F_grid_level = ti.field(int, (n_grid, ) * dim)
-        self.grid_size_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
+        self.grid_size_to_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
         self.cube_positions = ti.Vector.field(dim, ti.f32, 8)
         self.cube_positions.from_numpy(cube_verts_list)
 
@@ -74,6 +74,13 @@ class Grid:
         self.n_grid = n_grid
         self.set_levels(heightmap)
         self.calculate_m_transforms_lvl0()
+        self.info = [None]*6
+        self.info[0] = 0.0
+        self.info[1] = self.grid_size_to_km
+        self.info[2] = n_grid
+        self.info[3] = 0.0
+        self.info[4] = n_grid
+        self.info[5] = self.grid_size_to_km
     
     @ti.kernel
     def calculate_m_transforms_lvl0(self):
@@ -83,14 +90,14 @@ class Grid:
             k = idx%self.n_grid
             if (self.F_grid_level[i,j,k]==0):
                 self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl0[idx] *= self.grid_size_km/2.0
-                self.m_transforms_lvl0[idx][0,3] = i*self.grid_size_km + self.grid_size_km/2.0
-                self.m_transforms_lvl0[idx][1,3] = j*self.grid_size_km + self.grid_size_km/2.0
-                self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_km + self.grid_size_km/2.0
+                self.m_transforms_lvl0[idx] *= self.grid_size_to_km/2.0
+                self.m_transforms_lvl0[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km/2.0
+                self.m_transforms_lvl0[idx][1,3] = j*self.grid_size_to_km + self.grid_size_to_km/2.0
+                self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km/2.0
                 self.m_transforms_lvl0[idx][3,3] = 1
             else:
                 self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl0[idx] *= self.grid_size_km/2.0
+                self.m_transforms_lvl0[idx] *= self.grid_size_to_km/2.0
                 self.m_transforms_lvl0[idx][0,3] = 324534654
                 self.m_transforms_lvl0[idx][1,3] = 324534654
                 self.m_transforms_lvl0[idx][2,3] = 324534654
@@ -102,7 +109,7 @@ class Grid:
         # Fill the image
         for i,j,k in self.F_grid_level:
             # if grid height is inside terrain
-            if(j*self.grid_size_km <= heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((k/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]):
+            if(j*self.grid_size_to_km <= heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((k/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]):
                 self.F_grid_level[i,j,k] = 0
             else:
                 self.F_grid_level[i,j,k] = 1

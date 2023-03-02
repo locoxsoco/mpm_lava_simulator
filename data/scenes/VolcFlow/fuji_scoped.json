@@ -1,0 +1,11 @@
+{
+	"Configuration": 
+	{
+        "heightmapFile": "./data/heightmaps/fuji_scoped.png",
+		"simulationMethod": "VolcFlow",
+		"dim": 3,
+		"nGrid": 32,
+		"elevMinMeters": -7.8,
+		"elevMaxMeters": 3776.0
+	}
+}
