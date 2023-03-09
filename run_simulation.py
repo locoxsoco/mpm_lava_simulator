@@ -10,9 +10,9 @@ ti.init(arch=ti.gpu)
 ######################### Debug Parameters #########################
 normal_line_column = 0
 debug_normals_checkbox = 0
-debug_grid_checkbox = 0
-debug_mesh_checkbox = 1
-run_state = 0
+debug_grid_checkbox = 1
+debug_mesh_checkbox = 0
+run_state = 1
 #######################################################################
 
 
@@ -89,13 +89,13 @@ def main():
     camera.fov(55)
     while window.running:
         if(run_state == 1 or run_state == 2):
-            solver.step()
-            solver.Grid.calculate_m_transforms_lvl1()
+            solver.step(render,camera,window,scene,canvas,show_options,gui)
+            # solver.Grid.calculate_m_transforms_lvl1()
             if(run_state == 2):
                 run_state = 0
-        render(camera,window,scene,canvas,heightmap,grid)
-        show_options(gui)
-        window.show()
+        # render(camera,window,scene,canvas,heightmap,grid)
+        # show_options(gui)
+        # window.show()
 
 if __name__ == '__main__':
     main()

@@ -132,7 +132,7 @@ class Driver:
         return local_CAList
 
 
-    def step(self):
+    def step(self,render,camera,window,scene,canvas,show_options,gui):
         if(self.volumeRemaining > 0.0):
             # vent cell gets a new pulse of lava to distribute
             self.current_vent = (self.current_vent + 1) % (self.active_flow.num_vents)
@@ -163,9 +163,9 @@ class Driver:
             self.CAListSize,        # (type=unsigned int) Max size of Active list
             self.ActiveCounter,     # (type=unsigned int*) Active list current cell count
             self.NeighborList,      # (type=Neighbor*) 8 element list of cell-neighbors info
-            self.Grid.info          # (type=double*) Metadata array
+            self.Grid.info,         # (type=double*) Metadata array
             # &ActiveFlow.source      (type=Lava_flow*) Lava_flow Data structure 
-            )
+            render,camera,window,scene,canvas,self.Heightmap,show_options,gui)
 
             if (ret):
                 print( "[MAIN Error returned from [DISTRIBUTE].ret=", ret)
