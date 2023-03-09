@@ -81,7 +81,7 @@ def neighbor_id(active, grid, gridMetadata, neighborList):
     
     # SOUTHEAST
     # code = grid.parentcode[aRow,aCol] & 3
-    if not(grid.parentcode[aRow,aCol] == 3): # SW cell is not the parent of active cell
+    if not(grid.parentcode[aRow,aCol] == 3): # SE cell is not the parent of active cell
         if grid.eff_elev[aRow,aCol] > grid.eff_elev[Srow,Ecol]: # active cell is higher than SE neighbor
             # Calculate elevation difference between active and neighbor
             neighborList[neighborCount].elev_diff = (grid.eff_elev[aRow,aCol] - grid.eff_elev[Srow,Ecol])/math.sqrt(2) # SQRT2 is the weight for a diagonal cell
