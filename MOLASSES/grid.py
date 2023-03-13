@@ -29,25 +29,48 @@ cube_face_normals_list = np.array([
     [ 0.0, 0.0, -1.0],
     [ 0.0, 0.0,  1.0]
 ], dtype=np.float32)
+# Heightmap color
 cube_colors_list_lvl0 = np.array([
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0],
-    [0, 0.5, 0, 1.0]
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0]
 ], dtype=np.float32)
+# Lava color
+# cube_colors_list_lvl1 = np.array([
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
+#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0]
+# ], dtype=np.float32)
 cube_colors_list_lvl1 = np.array([
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0],
-    [0.5, 0, 0, 1.0]
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
+    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0]
+], dtype=np.float32)
+# Crust color
+cube_colors_list_lvl2 = np.array([
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
+    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0]
 ], dtype=np.float32)
 
 # @ti.func
@@ -97,10 +120,10 @@ class Grid:
 
         # DEMGeoTransform[0] lower left x
         # DEMGeoTransform[1] w-e pixel resolution (positive value)
-        # DEMGeoTransform[2] number of cols, assigned manually in this module 
+        # DEMGeoTransform[2] number of cols, assigned manually in this module
         # DEMGeoTransform[3] lower left y
         # DEMGeoTransform[4] number of rows, assigned manually in this module
-        # DEMGeoTransform[5] n-s pixel resolution (negative value) 
+        # DEMGeoTransform[5] n-s pixel resolution (negative value)
         self.info = [None]*6
         self.info[0] = 0.0
         self.info[1] = self.grid_size_to_km
@@ -109,7 +132,7 @@ class Grid:
         self.info[4] = n_grid
         self.info[5] = self.grid_size_to_km
         print(f'self.info[5]: {self.info[5]}')
-    
+
     @ti.kernel
     def init_values(self,heightmap: ti.template()):
         for i,j in self.residual:
@@ -119,7 +142,7 @@ class Grid:
             self.out_eff_elev[i,j] = self.dem_elev[i,j]
             self.parentcode[i,j] = -1
             self.active[i,j] = -1
-    
+
     @ti.kernel
     def calculate_m_transforms_lvl0(self):
         for idx in self.m_transforms_lvl0:
@@ -133,7 +156,7 @@ class Grid:
             # self.m_transforms_lvl0[idx][1,3] = self.dem_elev[i,k] + self.grid_size_to_km
             self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
             self.m_transforms_lvl0[idx][3,3] = 1
-    
+
     @ti.kernel
     def calculate_m_transforms_lvl1(self):
         for idx in self.m_transforms_lvl1:
@@ -149,7 +172,7 @@ class Grid:
                 self.m_transforms_lvl1[idx][1,3] = self.dem_elev[i,k]
                 self.m_transforms_lvl1[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
                 self.m_transforms_lvl1[idx][3,3] = 1
-    
+
     @ti.kernel
     def fill_residual(self,residual_value: float):
         for i in range(self.info[4]):
@@ -181,7 +204,7 @@ class Grid:
         neighborCount = 0
         aRow,aCol = i,k
         Nrow, Srow, Ecol, Wcol = int(aRow + 1), int(aRow - 1), int(aCol + 1), int(aCol - 1)
-        
+
 
         # NORTH neighbor
         # code = grid.parentcode[aRow,aCol] & 4
@@ -197,7 +220,7 @@ class Grid:
             self.neighborListCol[i,k,neighborCount] = aCol
             # print(f'neighborCount: {neighborCount} Nrow:{Nrow} aCol: {aCol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
             neighborCount += 1
-        
+
         # EAST
         # code = grid.parentcode[aRow,aCol] & 2
         # if not(grid.parentcode[aRow,aCol] == 2): # EAST cell is not the parent of active cell
@@ -213,7 +236,7 @@ class Grid:
             # # print(f'neighborCount: {neighborCount-1} Nrow:{Nrow} aCol: {aCol} neighborList[{neighborCount-1}].row: {neighborList[neighborCount-1].row} neighborList[{neighborCount-1}].col: {neighborList[neighborCount-1].col}')
             #     # print(f'neighborCount: {neighborCount} aRow:{aRow} Ecol: {Ecol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
             neighborCount += 1
-                
+
         # SOUTH
         # code = grid.parentcode[aRow,aCol] & 1
         # if not(grid.parentcode[aRow,aCol] == 1): # SOUTH cell is not the parent of active cell
@@ -228,7 +251,7 @@ class Grid:
             self.neighborListCol[i,k,neighborCount] = aCol
             # # print(f'neighborCount: {neighborCount} Srow:{Srow} aCol: {aCol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
             neighborCount += 1
-                
+
         # WEST
         # code = grid.parentcode[aRow,aCol] & 8
         # if not(grid.parentcode[aRow,aCol] == 8): # WEST cell is not the parent of active cell
@@ -242,7 +265,7 @@ class Grid:
             self.neighborListRow[i,k,neighborCount] = aRow
             self.neighborListCol[i,k,neighborCount] = Wcol
             neighborCount += 1
-        
+
         # DIAGONAL CELLS
         # SOUTHWEST
         # code = grid.parentcode[aRow,aCol] & 9
@@ -257,7 +280,7 @@ class Grid:
             self.neighborListRow[i,k,neighborCount] = Srow
             self.neighborListCol[i,k,neighborCount] = Wcol
             neighborCount += 1
-        
+
         # SOUTHEAST
         # code = grid.parentcode[aRow,aCol] & 3
         # if not(grid.parentcode[aRow,aCol] == 3): # SE cell is not the parent of active cell
@@ -271,7 +294,7 @@ class Grid:
             self.neighborListRow[i,k,neighborCount] = Srow
             self.neighborListCol[i,k,neighborCount] = Ecol
             neighborCount += 1
-        
+
         # NORTHEAST
         # code = grid.parentcode[aRow,aCol] & 6
         # if not(grid.parentcode[aRow,aCol] == 6): # NE cell is not the parent of active cell
@@ -285,7 +308,7 @@ class Grid:
             self.neighborListRow[i,k,neighborCount] = Nrow
             self.neighborListCol[i,k,neighborCount] = Ecol
             neighborCount += 1
-        
+
         # NORTHWEST
         # code = grid.parentcode[aRow,aCol] & 12
         # if not(grid.parentcode[aRow,aCol] == 12): # NW cell is not the parent of active cell
@@ -299,7 +322,7 @@ class Grid:
             self.neighborListRow[i,k,neighborCount] = Nrow
             self.neighborListCol[i,k,neighborCount] = Wcol
             neighborCount += 1
-        
+
         self.neighborListCounter[i,k] = neighborCount
         # for i in range(neighborCount):
         #     print(f'i: {i} neighborList[i].row: {neighborList[i].row} neighborList[i].col: {neighborList[i].col}')
