@@ -35,6 +35,7 @@ class Driver:
         self.CAList = self.init_flow()
         # Initialize the remaining volume to be the volume of lava to erupt.
         self.volumeRemaining = self.active_flow.volumeToErupt
+        self.volumeErupted = 0.0
         self.CAListSize = 0
         self.current_vent = -1
         self.pulseCount = 0
@@ -135,13 +136,14 @@ class Driver:
             print(f'[Driver] self.Grid.eff_elev[215,215]: {self.Grid.eff_elev[215,215]} self.ActiveCounter: {self.ActiveCounter}')
         
         
-        self.volumeRemaining = pulse(
+        self.volumeRemaining,self.volumeErupted = pulse(
         # &ActiveCounter,     (type= unsigned int*) Active list current cell count
         self.CAList[self.current_vent],            # (type=ActiveList*) 1D Active Cells List
         self.active_flow,       # (type=Lava_flow*) Lava_flow Data structure
         self.Grid,              # (type=DataCell**)  2D Data Grid
         self.volumeRemaining,   # (type=double) Lava volume not yet erupted
-        self.Grid.info)         # (type=double*) Metadata array
+        self.Grid.info,         # (type=double*) Metadata array
+        self.volumeErupted)
         # print(f'[Driver] self.volumeRemaining: {self.volumeRemaining} active_flow.currentvolume: {self.active_flow.currentvolume}')
 
         self.pulseCount+=1

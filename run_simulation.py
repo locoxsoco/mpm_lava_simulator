@@ -17,7 +17,7 @@ pulse_state = 0
 #######################################################################
 
 
-def show_options(gui):
+def show_options(gui,volumeErupted):
     global normal_line_column
     global debug_normals_checkbox
     global debug_grid_checkbox
@@ -25,19 +25,26 @@ def show_options(gui):
     global run_state
     global pulse_state
 
-    with gui.sub_window("Debug", 0.05, 0.1, 0.2, 0.15) as w:
+    with gui.sub_window("Debug", 0.0, 0.875, 0.115, 0.125) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
         normal_line_column = w.slider_int("Column", normal_line_column, 0, 100)
         debug_grid_checkbox = w.checkbox("Show grid", debug_grid_checkbox)
         debug_mesh_checkbox = w.checkbox("Show mesh", debug_mesh_checkbox)
+    
+    run_state_text = 'Running' if run_state else 'Paused'
+    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.115, 0.14) as w:
+        w.text(f'Volume Erupted: {round(volumeErupted,2)} m3')
         if w.button("Run"):
             run_state = 1
         if w.button("Pause"):
             run_state = 0
         if w.button("Step"):
             run_state = 2
-        if w.button("Pulse"):
+        if w.button("Center Pulse"):
             pulse_state = 1
+    
+    with gui.sub_window(f'Pulse Brush', 0.0, 0.14, 0.115, 0.125) as w:
+        w.text('Hey')
 
 def render(camera,window,scene,canvas,heightmap,grid):
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.RMB)
@@ -82,7 +89,7 @@ def main():
     heightmap = solver.Heightmap
     grid = solver.Grid
     
-    res = (1080, 720)
+    res = (1920, 1080)
     window = ti.ui.Window("Real MOLASSES 3D", res, vsync=False)
 
     canvas = window.get_canvas()
@@ -94,6 +101,8 @@ def main():
     camera.lookat(heightmap.hm_width_px*heightmap.px_to_km/2.0, 0.0, heightmap.hm_height_px*heightmap.px_to_km/2.0)
     camera.fov(55)
     while window.running:
+        mouse = window.get_cursor_pos()
+        print(mouse)
         if(pulse_state == 1):
             solver.pulse()
             solver.Grid.calculate_m_transforms_lvl1()
@@ -104,7 +113,7 @@ def main():
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)
-        show_options(gui)
+        show_options(gui,solver.volumeErupted)
         window.show()
 
 if __name__ == '__main__':
