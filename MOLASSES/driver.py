@@ -15,14 +15,6 @@ def gennor(av,sd):
 def genunf(low,high):
     return low + (high-low)*np.random.random()
 
-
-class Neighbor:
-    def __init__(self):
-        self.row = 0
-        self.col = 0
-        self.run = 0.0
-        self.elev_diff = 0.0
-
 class ActiveList:
     def __init__(self):
         self.row = 0
@@ -46,9 +38,9 @@ class Driver:
         self.CAListSize = 0
         self.current_vent = -1
         self.pulseCount = 0
-        self.NeighborList = []
-        for _ in range(8):
-            self.NeighborList.append(Neighbor())
+        # self.NeighborList = []
+        # for _ in range(8):
+        #     self.NeighborList.append(Neighbor())
         self.ActiveCounter = 0
     
     def load_vent_data(self):
@@ -131,44 +123,44 @@ class Driver:
 
         return local_CAList
 
+    def pulse(self):
+        # vent cell gets a new pulse of lava to distribute
+        self.current_vent = (self.current_vent + 1) % (self.active_flow.num_vents)
+        
+        self.CAList[self.current_vent].row = self.active_flow.source[self.current_vent].row
+        self.CAList[self.current_vent].col = self.active_flow.source[self.current_vent].col
+        
+        if (not(self.pulseCount % 100)):
+            print(f'[Driver] Vent: {self.active_flow.source[self.current_vent].easting} {self.active_flow.source[self.current_vent].northing} Active Cells: {self.ActiveCounter} Volume Remaining: {self.volumeRemaining} Pulse Count: {self.pulseCount}')
+            print(f'[Driver] self.Grid.eff_elev[215,215]: {self.Grid.eff_elev[215,215]} self.ActiveCounter: {self.ActiveCounter}')
+        
+        
+        self.volumeRemaining = pulse(
+        # &ActiveCounter,     (type= unsigned int*) Active list current cell count
+        self.CAList[self.current_vent],            # (type=ActiveList*) 1D Active Cells List
+        self.active_flow,       # (type=Lava_flow*) Lava_flow Data structure
+        self.Grid,              # (type=DataCell**)  2D Data Grid
+        self.volumeRemaining,   # (type=double) Lava volume not yet erupted
+        self.Grid.info)         # (type=double*) Metadata array
+        # print(f'[Driver] self.volumeRemaining: {self.volumeRemaining} active_flow.currentvolume: {self.active_flow.currentvolume}')
 
-    def step(self,render,camera,window,scene,canvas,show_options,gui):
-        if(self.volumeRemaining > 0.0):
-            # vent cell gets a new pulse of lava to distribute
-            self.current_vent = (self.current_vent + 1) % (self.active_flow.num_vents)
-            
-            self.CAList[self.current_vent].row = self.active_flow.source[self.current_vent].row
-            self.CAList[self.current_vent].col = self.active_flow.source[self.current_vent].col
-            
-            if (not(self.pulseCount % 100)):
-                print(f'[Driver] Vent: {self.active_flow.source[self.current_vent].easting} {self.active_flow.source[self.current_vent].northing} Active Cells: {self.ActiveCounter} Volume Remaining: {self.volumeRemaining} Pulse Count: {self.pulseCount}')
-                print(f'[Driver] self.Grid.eff_elev[215,215]: {self.Grid.eff_elev[215,215]} self.ActiveCounter: {self.ActiveCounter}')
-            
-            
-            self.volumeRemaining = pulse(
-            # &ActiveCounter,     (type= unsigned int*) Active list current cell count
-            self.CAList[self.current_vent],            # (type=ActiveList*) 1D Active Cells List
-            self.active_flow,       # (type=Lava_flow*) Lava_flow Data structure
-            self.Grid,              # (type=DataCell**)  2D Data Grid
-            self.volumeRemaining,   # (type=double) Lava volume not yet erupted
-            self.Grid.info)         # (type=double*) Metadata array
-            # print(f'[Driver] self.volumeRemaining: {self.volumeRemaining} active_flow.currentvolume: {self.active_flow.currentvolume}')
+        self.pulseCount+=1
+        return
 
-            self.pulseCount+=1
+    def step(self):
+        # Distribute lava to active cells and their 8 neighbors.
+        ret,self.ActiveCounter = distribute(
+        self.Grid,              # (type=DataCell**)  2D Data Grid
+        self.CAList,            # (type=ActiveList*) 1D Active Cells List
+        self.CAListSize,        # (type=unsigned int) Max size of Active list
+        self.ActiveCounter,     # (type=unsigned int*) Active list current cell count
+        self.NeighborList,      # (type=Neighbor*) 8 element list of cell-neighbors info
+        self.Grid.info,         # (type=double*) Metadata array
+        # &ActiveFlow.source      (type=Lava_flow*) Lava_flow Data structure 
+        )
 
-            # Distribute lava to active cells and their 8 neighbors.
-            ret,self.ActiveCounter = distribute(
-            self.Grid,              # (type=DataCell**)  2D Data Grid
-            self.CAList,            # (type=ActiveList*) 1D Active Cells List
-            self.CAListSize,        # (type=unsigned int) Max size of Active list
-            self.ActiveCounter,     # (type=unsigned int*) Active list current cell count
-            self.NeighborList,      # (type=Neighbor*) 8 element list of cell-neighbors info
-            self.Grid.info,         # (type=double*) Metadata array
-            # &ActiveFlow.source      (type=Lava_flow*) Lava_flow Data structure 
-            render,camera,window,scene,canvas,self.Heightmap,show_options,gui)
-
-            if (ret):
+        if (ret):
+            print( "[MAIN Error returned from [DISTRIBUTE].ret=", ret)
+            if (ret < 0): 
                 print( "[MAIN Error returned from [DISTRIBUTE].ret=", ret)
-                if (ret < 0): 
-                    print( "[MAIN Error returned from [DISTRIBUTE].ret=", ret)
-                    volumeRemaining = 0.0
+                volumeRemaining = 0.0

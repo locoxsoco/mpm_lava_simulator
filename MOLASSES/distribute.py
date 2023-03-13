@@ -3,7 +3,7 @@ from MOLASSES.neighbor_8 import neighbor_id
 
 np.random.seed(42)
 
-def distribute(grid, activeList, CAListSize, activeCount, activeNeighbor, gridinfo, render,camera,window,scene,canvas,heightmap,show_options,gui):
+def distribute(grid, activeList, CAListSize, activeCount, activeNeighbor, gridinfo):
     # print('INIT')
     ct = 0
     neighborCount = 0
@@ -129,11 +129,6 @@ def distribute(grid, activeList, CAListSize, activeCount, activeNeighbor, gridin
             # Subtract lavaOut  from activeCell's  effective elevation
             grid.eff_elev[activeList[ct].row,activeList[ct].col] -= lavaOut
             activeList[ct].excess = 0
-            
-            grid.calculate_m_transforms_lvl1()
-            render(camera,window,scene,canvas,heightmap,grid)
-            show_options(gui)
-            window.show()
         elif (neighborCount < 0): # might be off the grid
             return neighborCount, activeCount
         ct+=1

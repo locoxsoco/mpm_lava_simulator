@@ -12,7 +12,8 @@ normal_line_column = 0
 debug_normals_checkbox = 0
 debug_grid_checkbox = 1
 debug_mesh_checkbox = 0
-run_state = 1
+run_state = 0
+pulse_state = 0
 #######################################################################
 
 
@@ -22,6 +23,7 @@ def show_options(gui):
     global debug_grid_checkbox
     global debug_mesh_checkbox
     global run_state
+    global pulse_state
 
     with gui.sub_window("Debug", 0.05, 0.1, 0.2, 0.15) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
@@ -34,6 +36,8 @@ def show_options(gui):
             run_state = 0
         if w.button("Step"):
             run_state = 2
+        if w.button("Pulse"):
+            pulse_state = 1
 
 def render(camera,window,scene,canvas,heightmap,grid):
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.RMB)
@@ -57,6 +61,8 @@ def render(camera,window,scene,canvas,heightmap,grid):
 
 def main():
     global run_state
+    global pulse_state
+    
     parser = argparse.ArgumentParser(description='MOLASSES Taichi')
     parser.add_argument('--scene_file',
                         default='',
@@ -88,14 +94,18 @@ def main():
     camera.lookat(heightmap.hm_width_px*heightmap.px_to_km/2.0, 0.0, heightmap.hm_height_px*heightmap.px_to_km/2.0)
     camera.fov(55)
     while window.running:
+        if(pulse_state == 1):
+            solver.pulse()
+            solver.Grid.calculate_m_transforms_lvl1()
+            pulse_state = 0
         if(run_state == 1 or run_state == 2):
-            solver.step(render,camera,window,scene,canvas,show_options,gui)
-            # solver.Grid.calculate_m_transforms_lvl1()
+            solver.Grid.distribute()
+            solver.Grid.calculate_m_transforms_lvl1()
             if(run_state == 2):
                 run_state = 0
-        # render(camera,window,scene,canvas,heightmap,grid)
-        # show_options(gui)
-        # window.show()
+        render(camera,window,scene,canvas,heightmap,grid)
+        show_options(gui)
+        window.show()
 
 if __name__ == '__main__':
     main()
