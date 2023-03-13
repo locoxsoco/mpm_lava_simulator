@@ -17,7 +17,7 @@ pulse_state = 0
 #######################################################################
 
 
-def show_options(gui,volumeErupted):
+def show_options(gui,volumeErupted,pulseVolume):
     global normal_line_column
     global debug_normals_checkbox
     global debug_grid_checkbox
@@ -25,14 +25,14 @@ def show_options(gui,volumeErupted):
     global run_state
     global pulse_state
 
-    with gui.sub_window("Debug", 0.0, 0.875, 0.115, 0.125) as w:
+    with gui.sub_window("Debug", 0.0, 0.875, 0.14, 0.125) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
         normal_line_column = w.slider_int("Column", normal_line_column, 0, 100)
         debug_grid_checkbox = w.checkbox("Show grid", debug_grid_checkbox)
         debug_mesh_checkbox = w.checkbox("Show mesh", debug_mesh_checkbox)
     
     run_state_text = 'Running' if run_state else 'Paused'
-    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.115, 0.14) as w:
+    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.165) as w:
         w.text(f'Volume Erupted: {round(volumeErupted,2)} m3')
         if w.button("Run"):
             run_state = 1
@@ -40,11 +40,17 @@ def show_options(gui,volumeErupted):
             run_state = 0
         if w.button("Step"):
             run_state = 2
+        pulseVolume = w.slider_float("Volume per pulse (m3)", pulseVolume, 0.0, 10.0)
         if w.button("Center Pulse"):
             pulse_state = 1
     
-    with gui.sub_window(f'Pulse Brush', 0.0, 0.14, 0.115, 0.125) as w:
-        w.text('Hey')
+    customPulseSize = 0.0
+    customPulseVolume = 0.0
+    with gui.sub_window(f'Pulse Brush', 0.0, 0.165, 0.14, 0.125) as w:
+        customPulseSize = w.slider_float("Size (m)", customPulseSize, 0.0, 10.0)
+        customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 10.0)
+    
+    return pulseVolume
 
 def render(camera,window,scene,canvas,heightmap,grid):
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.RMB)
@@ -60,7 +66,7 @@ def render(camera,window,scene,canvas,heightmap,grid):
         for i in range(45):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
 
-    scene.ambient_light((0.3, 0.3, 0.3))
+    scene.ambient_light((0.5, 0.5, 0.5))
     scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
     scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, 3.0*heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
 
@@ -102,7 +108,7 @@ def main():
     camera.fov(55)
     while window.running:
         mouse = window.get_cursor_pos()
-        print(mouse)
+        # print(mouse)
         if(pulse_state == 1):
             solver.pulse()
             solver.Grid.calculate_m_transforms_lvl1()
@@ -113,7 +119,7 @@ def main():
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)
-        show_options(gui,solver.volumeErupted)
+        solver.active_flow.pulsevolume = show_options(gui,solver.volumeErupted,solver.active_flow.pulsevolume)
         window.show()
 
 if __name__ == '__main__':
