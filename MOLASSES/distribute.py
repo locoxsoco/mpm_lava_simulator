@@ -57,33 +57,34 @@ def distribute(grid, activeList, CAListSize, activeCount, activeNeighbor, gridin
             for nc in range(neighborCount):
                 n = shuffle[nc]
 
-                if activeNeighbor[n].row > activeList[ct].row and activeNeighbor[n].col < activeList[ct].col:
-                    # (0011) this neighbor's parent is SE
-                    parentCode = 3
-                elif activeNeighbor[n].row > activeList[ct].row and activeNeighbor[n].col > activeList[ct].col:
-                    # (1001) this neighbor's parent is SW
-                    parentCode = 9
-                elif activeNeighbor[n].row < activeList[ct].row and activeNeighbor[n].col < activeList[ct].col:
-                    # (0110) this neighbor's parent is NE
-                    parentCode = 6
-                elif activeNeighbor[n].row < activeList[ct].row and activeNeighbor[n].col > activeList[ct].col:
-                    # (1100) this neighbor's parent is NW
-                    parentCode = 12
-                elif activeNeighbor[n].row > activeList[ct].row:
-                    # (0001) this neighbor's parent is SOUTH
+                if activeNeighbor[n].row < activeList[ct].row:
+                    # (0000 0001) this neighbor's parent is NORTH
                     parentCode = 1
-                elif activeNeighbor[n].col < activeList[ct].col:
-                    # (0010) this neighbor's parent is EAST
+                elif activeNeighbor[n].row > activeList[ct].row:
+                    # (0000 0010) this neighbor's parent is SOUTH
                     parentCode = 2
-                elif activeNeighbor[n].row < activeList[ct].row:
-                    # (0100) this neighbor's parent is NORTH
+                elif activeNeighbor[n].col < activeList[ct].col:
+                    # (0000 0100) this neighbor's parent is EAST
                     parentCode = 4
                 elif activeNeighbor[n].col > activeList[ct].col:
-                    # (1000) this neighbor's parent is WEST
+                    # (0000 1000) this neighbor's parent is WEST
                     parentCode = 8
+                elif activeNeighbor[n].row < activeList[ct].row and activeNeighbor[n].col < activeList[ct].col:
+                    # (0001 0000) this neighbor's parent is NE
+                    parentCode = 16
+                elif activeNeighbor[n].row < activeList[ct].row and activeNeighbor[n].col > activeList[ct].col:
+                    # (0010 0000) this neighbor's parent is NW
+                    parentCode = 32
+                elif activeNeighbor[n].row > activeList[ct].row and activeNeighbor[n].col < activeList[ct].col:
+                    # (0100 0000) this neighbor's parent is SE
+                    parentCode = 64
+                elif activeNeighbor[n].row > activeList[ct].row and activeNeighbor[n].col > activeList[ct].col:
+                    # (1000 0000) this neighbor's parent is SW
+                    parentCode = 128
+                
 
                 # Assign parentCode to neighbor grid cell
-                grid.parentcode[activeNeighbor[n].row,activeNeighbor[n].col] = parentCode
+                grid.parentcodes[activeNeighbor[n].row,activeNeighbor[n].col] = grid.parentcodes[activeNeighbor[n].row,activeNeighbor[n].col] | parentCode
 
                 # Now Calculate the amount of lava this neighbor gets		
 				# This neighbor gets lava proportional to the elevation difference with its parent;
