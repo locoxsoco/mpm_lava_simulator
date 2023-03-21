@@ -4,6 +4,7 @@ import taichi as ti
 import numpy as np
 from config_builder import SimConfig
 from MOLASSES.driver import Driver
+from utils import *
 
 ti.init(arch=ti.gpu)
 
@@ -108,7 +109,11 @@ def main():
     camera.fov(55)
     while window.running:
         mouse = window.get_cursor_pos()
-        # print(mouse)
+        if window.is_pressed(ti.ui.CTRL):
+            rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], dim, dim)
+            validAnchor,anchor = solver.Grid.Intersect(rayPoint,rayDirection)
+            if(validAnchor):
+                print('yes')
         if(pulse_state == 1):
             solver.pulse()
             solver.Grid.calculate_m_transforms_lvl1()
