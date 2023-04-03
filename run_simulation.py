@@ -2,8 +2,10 @@ import os
 import argparse
 import taichi as ti
 import numpy as np
+import time
 from config_builder import SimConfig
-from MOLASSES.driver import Driver
+from MOLASSES.driver import Driver as MOLASSESDriver
+from MAGFLOW.driver import Driver as MAGFLOWDriver
 from utils import *
 
 ti.init(arch=ti.gpu)
@@ -18,7 +20,7 @@ pulse_state = 0
 #######################################################################
 
 
-def show_options(gui,volumeErupted,pulseVolume):
+def show_options(gui,volumeErupted,pulseVolume,grid,simulation_time):
     global normal_line_column
     global debug_normals_checkbox
     global debug_grid_checkbox
@@ -34,24 +36,28 @@ def show_options(gui,volumeErupted,pulseVolume):
     
     run_state_text = 'Running' if run_state else 'Paused'
     with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.165) as w:
-        w.text(f'Volume Erupted: {round(volumeErupted,2)} m3')
+        w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
+        w.text(f'Simulation time: {simulation_time} s')
         if w.button("Run"):
             run_state = 1
         if w.button("Pause"):
             run_state = 0
         if w.button("Step"):
             run_state = 2
-        pulseVolume = w.slider_float("Volume per pulse (m3)", pulseVolume, 0.0, 10.0)
+        pulseVolume = w.slider_float("Volume per pulse (km3)", pulseVolume, 0.0, 0.001)
         if w.button("Center Pulse"):
             pulse_state = 1
     
     customPulseSize = 0.0
     customPulseVolume = 0.0
-    with gui.sub_window(f'Pulse Brush', 0.0, 0.165, 0.14, 0.125) as w:
-        customPulseSize = w.slider_float("Size (m)", customPulseSize, 0.0, 10.0)
-        customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 10.0)
+    with gui.sub_window(f'Pulse Brush', 0.0, 0.165, 0.145, 0.125) as w:
+        customPulseSize = w.slider_float("Size (km)", customPulseSize, 0.0, 0.5)
+        customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
-    return pulseVolume
+    # with gui.sub_window(f'Lava Properties', 0.0, 0.190, 0.145, 0.125) as w:
+    #     grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
+    
+    return pulseVolume/10.0
 
 def render(camera,window,scene,canvas,heightmap,grid):
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.RMB)
@@ -77,7 +83,7 @@ def main():
     global run_state
     global pulse_state
     
-    parser = argparse.ArgumentParser(description='MOLASSES Taichi')
+    parser = argparse.ArgumentParser(description='Lava Sim Taichi')
     parser.add_argument('--scene_file',
                         default='',
                         help='scene file')
@@ -86,18 +92,22 @@ def main():
 
     config = SimConfig(scene_file_path=scene_path)
     heightmap_path = config.get_cfg("heightmapFile")
+    simulation_method = config.get_cfg("simulationMethod")
     dim = config.get_cfg("dim")
     n_grid = config.get_cfg("nGrid")
     hm_elev_min_m = config.get_cfg("elevMinMeters")
     hm_elev_max_m = config.get_cfg("elevMaxMeters")
 
-    solver = Driver(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m,n_grid)
+    if(simulation_method == 'MOLASSES'):
+        solver = MOLASSESDriver(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m,n_grid)
+    elif(simulation_method == 'MAGFLOW'):
+        solver = MAGFLOWDriver(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m,n_grid)
 
     heightmap = solver.Heightmap
     grid = solver.Grid
     
     res = (1920, 1080)
-    window = ti.ui.Window("Real MOLASSES 3D", res, vsync=False)
+    window = ti.ui.Window(f'Real {simulation_method} 3D', res, vsync=False)
 
     canvas = window.get_canvas()
     canvas.set_background_color((0.16796875,0.17578125,0.2578125))
@@ -107,6 +117,8 @@ def main():
     camera.position(0.0, heightmap.hm_elev_range_km, 0.0)
     camera.lookat(heightmap.hm_width_px*heightmap.px_to_km/2.0, 0.0, heightmap.hm_height_px*heightmap.px_to_km/2.0)
     camera.fov(55)
+    substeps = 5
+    simulation_time = 0.0
     while window.running:
         mouse = window.get_cursor_pos()
         if window.is_pressed(ti.ui.CTRL):
@@ -114,17 +126,55 @@ def main():
             validAnchor,anchor = solver.Grid.Intersect(rayPoint,rayDirection)
             if(validAnchor):
                 print('yes')
+        # ini_pulse_time = time.time()
         if(pulse_state == 1):
-            solver.pulse()
+            if(simulation_method == 'MOLASSES'):
+                solver.pulse()
+            elif(simulation_method == 'MAGFLOW'):
+                # 1. Compute volumetrix lava flux for cell vents
+                if(solver.active_flow.pulsevolume>0):
+                    solver.pulse()
+                    # print(f'[PULSE] {time.time()-ini_pulse_time}')
+                # print('Llegue')
+                # solver.Grid.computeVolumetricLavaFlux()
             solver.Grid.calculate_m_transforms_lvl1()
-            pulse_state = 0
+            # pulse_state = 0
         if(run_state == 1 or run_state == 2):
-            solver.Grid.distribute()
+            if(simulation_method == 'MOLASSES'):
+                solver.Grid.distribute()
+            elif(simulation_method == 'MAGFLOW'):
+                for i in range(substeps):
+                    # 2. Compute flux transfer with neighbouring cells
+                    # ini_flux_time = time.time()
+                    solver.Grid.computeFluxTransfers()
+                    # print(f'[FLUX] {time.time()-ini_flux_time}')
+                    # 3. Computer the maximum allowed time-step
+                    # ini_dt_time = time.time()
+                    solver.Grid.computeTimeSteps()
+                    # print(f'[TIMESTEP] {time.time()-ini_dt_time}')
+                    # ini_global_time = time.time()
+                    global_delta_time = solver.Grid.computeGlobalTimeStep()
+                    solver.Grid.global_delta_time = global_delta_time
+                    simulation_time += global_delta_time
+                    # print(f'[GLOBAL] {time.time()-ini_global_time}')
+                    # print(f'global_delta_time: {solver.Grid.global_delta_time}')
+                    # 4. Update state of the cell
+                    # 4.1 Compute the new lava thickness
+                    # ini_lavah_time = time.time()
+                    solver.Grid.computeNewLavaThickness()
+                    # print(f'[NEWLAVAH] {time.time()-ini_lavah_time}')
+                    # solver.Grid.updateLavaThickness()
+                    # 4.2 Compute the heat radiation loss
+                    solver.Grid.computeHeatRadiationLoss()
+                    solver.Grid.updateTemperature()
+                    # 4.3 Transfer an appropriate amount of lava thickness to the solid lava thickness if there is solidification
+                    # solver.Grid.computeLavaSolidification()
             solver.Grid.calculate_m_transforms_lvl1()
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)
-        solver.active_flow.pulsevolume = show_options(gui,solver.volumeErupted,solver.active_flow.pulsevolume)
+        solver.active_flow.pulsevolume = show_options(gui,solver.volumeErupted,solver.active_flow.pulsevolume,solver.Grid,simulation_time)
+        # print(f'[RUNSIMULATION] solver.active_flow.pulsevolume: {solver.active_flow.pulsevolume}')
         window.show()
 
 if __name__ == '__main__':
