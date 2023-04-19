@@ -13,6 +13,9 @@ def gennor(av,sd):
 def genunf(low,high):
     return low + (high-low)*np.random.random()
 
+def cubicSmooth(x,r):
+    return (1.0-x/r)*(1.0-x/r)*(1.0-x/r)
+
 class ActiveList:
     def __init__(self):
         self.row = 0
@@ -31,9 +34,6 @@ class Driver:
         self.set_flow_params()
         # Initialize the lava flow data structures and initialize vent cell
         self.CAList = self.init_flow()
-        # Initialize the remaining volume to be the volume of lava to erupt.
-        self.volumeRemaining = self.active_flow.volumeToErupt
-        self.volumeErupted = 0.0
         self.CAListSize = 0
         self.current_vent = -1
         self.pulseCount = 0
@@ -93,23 +93,19 @@ class Driver:
 
         return local_CAList
 
-    def pulse(self):
-        # vent cell gets a new pulse of lava to distribute
-        self.current_vent = (self.current_vent + 1) % (self.active_flow.num_vents)
-        
-        self.CAList[self.current_vent].row = self.active_flow.source[self.current_vent].row
-        self.CAList[self.current_vent].col = self.active_flow.source[self.current_vent].col
-        
-        # if (not(self.pulseCount % 100)):
-        #     print(f'[Driver] Vent: {self.active_flow.source[self.current_vent].easting} {self.active_flow.source[self.current_vent].northing} Active Cells: {self.ActiveCounter} Volume Remaining: {self.volumeRemaining} Pulse Count: {self.pulseCount}')
-        
-        
-        self.volumeRemaining,self.volumeErupted = self.Grid.pulse(
-        self.CAList[self.current_vent],            # (type=ActiveList*) 1D Active Cells List
-        self.active_flow,       # (type=Lava_flow*) Lava_flow Data structure
-        self.volumeRemaining,   # (type=double) Lava volume not yet erupted
-        self.volumeErupted)
-        # print(f'[Driver] self.volumeRemaining: {self.volumeRemaining} active_flow.currentvolume: {self.active_flow.currentvolume}')
+    def set_active_pulses(self):
+        center_x, center_y = 200, 200
+        radius = 100
+        height = 0.0001
+        radius_grid = math.ceil(radius/(self.Grid.grid_size_to_km * self.Grid.km_to_m))
+        bbox_min_x = center_x - radius_grid
+        bbox_min_y = center_y - radius_grid
+        bbox_max_x = center_x + radius_grid
+        bbox_max_y = center_y + radius_grid
 
-        self.pulseCount+=1
-        return
+        for y in range(bbox_min_y,bbox_max_y):
+            for x in range(bbox_min_x,bbox_max_x):
+                u = (center_x-x)**2 + (center_y-y)**2
+                if(u<radius_grid*radius_grid):
+                    self.Grid.is_active[x,y] = 1
+                    self.Grid.pulse_volume[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)

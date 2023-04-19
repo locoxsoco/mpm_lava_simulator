@@ -20,7 +20,7 @@ pulse_state = 0
 #######################################################################
 
 
-def show_options(gui,volumeErupted,pulseVolume,grid,simulation_time):
+def show_options(gui,pulseVolume,grid,simulation_time):
     global normal_line_column
     global debug_normals_checkbox
     global debug_grid_checkbox
@@ -36,7 +36,7 @@ def show_options(gui,volumeErupted,pulseVolume,grid,simulation_time):
     
     run_state_text = 'Running' if run_state else 'Paused'
     with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.165) as w:
-        w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
+        # w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
         w.text(f'Simulation time: {simulation_time} s')
         if w.button("Run"):
             run_state = 1
@@ -45,8 +45,10 @@ def show_options(gui,volumeErupted,pulseVolume,grid,simulation_time):
         if w.button("Step"):
             run_state = 2
         pulseVolume = w.slider_float("Volume per pulse (km3)", pulseVolume, 0.0, 0.001)
-        if w.button("Center Pulse"):
+        if w.button("Emit Pulse"):
             pulse_state = 1
+        if w.button("Pause Pulse"):
+            pulse_state = 0
     
     customPulseSize = 0.0
     customPulseVolume = 0.0
@@ -69,6 +71,7 @@ def render(camera,window,scene,canvas,heightmap,grid):
     if(debug_grid_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
         scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
+        scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
     if(debug_normals_checkbox):
         for i in range(45):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
@@ -106,7 +109,7 @@ def main():
     heightmap = solver.Heightmap
     grid = solver.Grid
     
-    res = (1920, 1080)
+    res = (950, 950)
     window = ti.ui.Window(f'Real {simulation_method} 3D', res, vsync=False)
 
     canvas = window.get_canvas()
@@ -120,25 +123,25 @@ def main():
     substeps = 5
     simulation_time = 0.0
     while window.running:
-        mouse = window.get_cursor_pos()
-        if window.is_pressed(ti.ui.CTRL):
-            rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], dim, dim)
-            validAnchor,anchor = solver.Grid.Intersect(rayPoint,rayDirection)
-            if(validAnchor):
-                print('yes')
-        # ini_pulse_time = time.time()
+        if(simulation_method == 'MAGFLOW'):
+            mouse = window.get_cursor_pos()
+            if window.is_pressed(ti.ui.CTRL):
+                rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1)
+                print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
+                validAnchor,anchor_x,anchor_y = solver.Grid.Intersect(rayPoint,rayDirection)
+                # if(validAnchor):
+                #     print('Yes')
+                solver.Grid.calculate_m_transforms_lvl2(anchor_x,anchor_y)
+            # ini_pulse_time = time.time()
         if(pulse_state == 1):
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
             elif(simulation_method == 'MAGFLOW'):
+                solver.set_active_pulses()
                 # 1. Compute volumetrix lava flux for cell vents
-                if(solver.active_flow.pulsevolume>0):
-                    solver.pulse()
-                    # print(f'[PULSE] {time.time()-ini_pulse_time}')
-                # print('Llegue')
-                # solver.Grid.computeVolumetricLavaFlux()
+                solver.Grid.pulse()
+                # print(f'[PULSE] {time.time()-ini_pulse_time}')
             solver.Grid.calculate_m_transforms_lvl1()
-            # pulse_state = 0
         if(run_state == 1 or run_state == 2):
             if(simulation_method == 'MOLASSES'):
                 solver.Grid.distribute()
@@ -173,7 +176,7 @@ def main():
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)
-        solver.active_flow.pulsevolume = show_options(gui,solver.volumeErupted,solver.active_flow.pulsevolume,solver.Grid,simulation_time)
+        solver.active_flow.pulsevolume = show_options(gui,solver.active_flow.pulsevolume,solver.Grid,simulation_time)
         # print(f'[RUNSIMULATION] solver.active_flow.pulsevolume: {solver.active_flow.pulsevolume}')
         window.show()
 

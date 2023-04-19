@@ -71,6 +71,17 @@ cube_colors_list_lvl2 = np.array([
     [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
     [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0]
 ], dtype=np.float32)
+# Select color
+cube_colors_list_lvl2 = np.array([
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
+    [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0]
+], dtype=np.float32)
 
 @ti.data_oriented
 class Grid:
@@ -80,9 +91,11 @@ class Grid:
         print(f'self.grid_size_to_km: {self.grid_size_to_km} self.km_to_m: {self.km_to_m}')
 
         self.cube_positions = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions2 = ti.Vector.field(dim, ti.f32, 8)
         self.cube_positions.from_numpy(cube_verts_list)
+        self.cube_positions2 = ti.Vector.field(dim, ti.f32, 8)
         self.cube_positions2.from_numpy(cube_verts_list)
+        self.cube_positions3 = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_positions3.from_numpy(cube_verts_list)
         self.cube_indices = ti.field(ti.i32, shape=len(cube_faces_list))
         self.cube_indices.from_numpy(cube_faces_list)
         self.cube_normals = ti.Vector.field(dim, ti.f32, 8)
@@ -91,10 +104,13 @@ class Grid:
         self.cube_colors_lvl0.from_numpy(cube_colors_list_lvl0)
         self.cube_colors_lvl1 = ti.Vector.field(4, ti.f32, 8)
         self.cube_colors_lvl1.from_numpy(cube_colors_list_lvl1)
+        self.cube_colors_lvl2 = ti.Vector.field(4, ti.f32, 8)
+        self.cube_colors_lvl2.from_numpy(cube_colors_list_lvl2)
         self.curr_cube_positions = ti.Vector.field(dim, ti.f32, 8)
 
         self.m_transforms_lvl0 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
         self.m_transforms_lvl1 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
+        self.m_transforms_lvl2 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
 
         self.n_grid = n_grid
 
@@ -126,6 +142,9 @@ class Grid:
         self.delta_time = ti.field(ti.f32, (n_grid, ) * (dim-1))
         self.lava_flux = ti.field(ti.f32, shape=(n_grid,n_grid,8))
         self.global_delta_time = ti.field(ti.f32, shape=())
+        
+        self.is_active = ti.field(ti.i32, shape=(n_grid,n_grid))
+        self.pulse_volume = ti.field(ti.f32, shape=(n_grid,n_grid))
 
         # Etna's lava parameters
         self.lava_density = 2600.0
@@ -138,6 +157,7 @@ class Grid:
         self.gravity = 9.81
         self.delta_time_c = 0.99
         self.cell_area = (self.grid_size_to_km*self.km_to_m)**2
+        print(f'self.grid_size_to_km: {self.grid_size_to_km} self.cell_area: {self.cell_area}')
         self.global_delta_time = 0.0
         self.c_v = self.specific_heat_capacity
         self.max_lava_thickness = 250.0
@@ -166,9 +186,11 @@ class Grid:
             self.lava_thickness[i,j] = 0.0
             self.solid_lava_thickness[i,j] = 0.0
             self.heat_quantity[i,j] = 0.0
+            self.is_active[i,j] = 0
+            self.pulse_volume[i,j] = 0.0
 
             self.temperature[i,j] = self.ambient_temperature
-            self.delta_time[i,j] = 0.0001
+            self.delta_time[i,j] = 0.0
 
             # if(i==200 and j==200):
             #     self.lava_thickness[i,j] = 50.0
@@ -202,6 +224,24 @@ class Grid:
                 self.m_transforms_lvl1[idx][1,3] = self.dem_elev[i,k]/self.km_to_m
                 self.m_transforms_lvl1[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
                 self.m_transforms_lvl1[idx][3,3] = 1
+    
+    @ti.kernel
+    def calculate_m_transforms_lvl2(self,anchor_i: int,anchor_k: int):
+        for idx in self.m_transforms_lvl2:
+            i = int(idx//self.n_grid)
+            k = int(idx%self.n_grid)
+            if i==anchor_i and k==anchor_k:
+                self.m_transforms_lvl2[idx] = ti.Matrix.identity(float,4)
+                self.m_transforms_lvl2[idx] *= self.grid_size_to_km
+                self.m_transforms_lvl2[idx][1,1] = 1.0
+                self.m_transforms_lvl2[idx][1,1] *= (self.dem_elev[i,k]+self.lava_thickness[i,k]+100.0)/self.km_to_m
+                self.m_transforms_lvl2[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km
+                # self.m_transforms_lvl2[idx][1,3] = self.dem_elev[i,k]/self.km_to_m
+                self.m_transforms_lvl2[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
+                self.m_transforms_lvl2[idx][3,3] = 1
+            else:
+                self.m_transforms_lvl2[idx] = ti.Matrix.identity(float,4)
+                self.m_transforms_lvl2[idx][2,3] = 654654654
 
     @ti.kernel
     def computeHeatRadiationLoss(self):
@@ -220,10 +260,13 @@ class Grid:
             
             epsilon = self.emissivity
             A = self.cell_area
-            sigma = 5.68 * 10**(-8)
+            # Stefan–Boltzmann
+            sigma = 5.68 * 10**(-4)
             delta_Q_t_r = epsilon * A * sigma * self.temperature[i,k]**4 * self.global_delta_time
 
             self.heat_quantity[i,k] += delta_Q_t_m - delta_Q_t_r
+            if(i==215 and k==215):
+                print(f'self.heat_quantity[i,k]: {self.heat_quantity[i,k]} delta_Q_t_m: {delta_Q_t_m} delta_Q_t_r: {delta_Q_t_r}')
 
     @ti.kernel
     def updateTemperature(self):
@@ -236,6 +279,8 @@ class Grid:
                 self.temperature[i,k] = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
             else:
                 self.heat_quantity[i,k] = 0.0
+            if(i==215 and k==215):
+                print(f'self.temperature[i,k]: {self.temperature[i,k]}')
 
     @ti.kernel
     def computeNewLavaThickness(self):
@@ -303,62 +348,128 @@ class Grid:
                     else:
                         self.lava_flux[i,k,n] = 0.0
     
-    def pulse(self, actList, active_flow, volumeRemaining, volumeErupted):
-        pulseThickness = 0.0 # Pulse Volume divided by data grid resolution
-        pulsevolume = active_flow.pulsevolume
+    @ti.kernel
+    def pulse(self):
+        for i,k in self.dem_elev:
+            if(self.is_active[i,k]==1):
+                pulsevolume = self.pulse_volume[i,k]
+                pulsevolume *= self.km_to_m**3
+                pulseThickness = pulsevolume / self.cell_area
+                new_lava_thickness = self.lava_thickness[i,k] + pulseThickness
+                if (new_lava_thickness > self.max_lava_thickness):
+                    pulseThickness = self.max_lava_thickness - self.lava_thickness[i,k]
+                    pulsevolume = pulseThickness * self.cell_area
+                self.lava_thickness[i,k] += pulseThickness
+                self.is_active[i,k] = 0
+                self.pulse_volume[i,k] = 0.0
+                if(pulseThickness>0):
+                    rho = self.lava_density
+                    c_v = self.c_v
+                    A = self.cell_area
+                    h_t_dt = self.lava_thickness[i,k]
+                    self.heat_quantity[i,k] += pulseThickness*A*self.extrusion_temperature*rho*c_v
+                    self.temperature[i,k] = self.heat_quantity[i,k]/(rho*c_v*h_t_dt*A)
+
+
+    def bboxIntersect(self,rayPosition,rayDirection):
+        epsilon = 1.0e-5
+        tmin = -1e-16
+        tmax = 1e16
+
+        a = [0,0]
+        b = [self.n_grid, self.n_grid]
+        p = rayPosition
+        d = rayDirection - rayPosition
+        # print(f'd: {d} p: {p}')
+
+        t = 0.0
+        # Ox
+        if (d[0] < -epsilon):
+            t = (a[0] - p[0]) / d[0]
+            if (t < tmin):
+                return False,0.0,0.0
+            if (t <= tmax):
+                tmax = t
+            t = (b[0] - p[0]) / d[0]
+            if (t >= tmin):
+                if(t > tmax):
+                    return False,0.0,0.0
+                tmin = t
+        elif (d[0] > epsilon):
+            t = (b[0] - p[0]) / d[0]
+            # print(f't1: {t} tmin: {tmin} tmax: {tmax}')
+            if (t < tmin):
+                return False,0.0,0.0
+            if (t <= tmax):
+                tmax = t
+            t = (a[0] - p[0]) / d[0]
+            # print(f't2: {t} tmin: {tmin} tmax: {tmax}')
+            if (t >= tmin):
+                if(t > tmax):
+                    return False,0.0,0.0
+                tmin = t
+        elif (p[0]<a[0] or p[0]>b[0]):
+            return False,0.0,0.0
         
-        if volumeRemaining > 0.0:
-            if pulsevolume > active_flow.currentvolume:
-                pulsevolume = active_flow.currentvolume
-            pulsevolume *= self.km_to_m**3
-            pulseThickness = pulsevolume / self.cell_area
-            new_lava_thickness = self.lava_thickness[actList.row,actList.col] + pulseThickness
-            if (new_lava_thickness > self.max_lava_thickness):
-                pulseThickness = self.max_lava_thickness - self.lava_thickness[actList.row,actList.col]
-                pulsevolume = pulseThickness * self.cell_area
-            active_flow.currentvolume -= pulsevolume/self.km_to_m**3 # Subtract pulse volume from flow's total magma budget
-            volumeErupted += pulsevolume/self.km_to_m**3
-            volumeRemaining = active_flow.currentvolume
-            # If the flow has a thickness of lava greater than it's h_cr, then it has lava to give so put it on the active list
-            self.lava_thickness[actList.row,actList.col] += pulseThickness
-            if(pulseThickness>0):
-                rho = self.lava_density
-                c_v = self.c_v
-                A = self.cell_area
-                h_t_dt = self.lava_thickness[actList.row,actList.col]
-                self.heat_quantity[actList.row,actList.col] += pulseThickness*A*self.extrusion_temperature*rho*c_v
-                self.temperature[actList.row,actList.col] = self.heat_quantity[actList.row,actList.col]/(rho*c_v*h_t_dt*A)
+        # Oy
+        if (d[1] < -epsilon):
+            t = (a[1] - p[1]) / d[1]
+            if (t < tmin):
+                return False,0.0,0.0
+            if (t <= tmax):
+                tmax = t
+            t = (b[1] - p[1]) / d[1]
+            if (t >= tmin):
+                if(t > tmax):
+                    return False,0.0,0.0
+                tmin = t
+        elif (d[1] > epsilon):
+            t = (b[1] - p[1]) / d[1]
+            # print(f't3: {t} tmin: {tmin} tmax: {tmax}')
+            if (t < tmin):
+                return False,0.0,0.0
+            if (t <= tmax):
+                tmax = t
+            t = (a[1] - p[1]) / d[1]
+            # print(f't4: {t} tmin: {tmin} tmax: {tmax}')
+            if (t >= tmin):
+                if(t > tmax):
+                    return False,0.0,0.0
+                tmin = t
+        elif (p[1]<a[1] or p[1]>b[1]):
+            return False,0.0,0.0
+        
+        return True,tmin,tmax
 
-        return volumeRemaining,volumeErupted
-
-    # def Intersect(self,rayPosition,rayDirection):
-    #     # Compute bounding box
-    #     Box2 box = getDomain()
-
-    #     # Check the intersection with the bounding box
-    #     Vector3 r0 = ray(0);
-    #     Vector3 r1 = ray(1);
-    #     if (!box.Intersect(Vector2(r0[0], r0[1]), Vector2(r1[0], r1[1]), ta, tb))
-    #         return false;
-
-    #     t = ta + 0.0001;
-    #     if (ta < 0.0)
-    #     {
-    #         t = 0.0;
-    #     }
-
-    #     # Ray marching
-    #     while (t < tb)
-    #     {
-    #         // Point along the ray
-    #         Vector3 p = ray(t);
-    #         double h = Height(Vector2(p[0], p[1]));
-    #         if (h > p[2]) {
-    #             q = Vector3(p[0], p[1], h);
-    #             return true;
-    #         }
-    #         else {
-    #             t += 1.0;
-    #         }
-    #     }
-    #     return false;
+    def Intersect(self,rayPosition,rayDirection):
+        rayPosList = [rayPosition[0],rayPosition[2]]
+        rayPositionGrid = np.array(rayPosList)
+        rayDirGridList = [rayDirection[0],rayDirection[2]]
+        rayDirectionGrid = np.array(rayDirGridList)
+        # normRayDirectionGrid = np.linalg.norm(rayDirectionGrid)
+        # rayDirectionGrid /= normRayDirectionGrid
+        # rayDirectionGrid /= self.grid_size_to_km
+        # print(f'rayPositionGrid: {rayPositionGrid} rayDirectionGrid: {rayDirectionGrid}')
+        # Check the intersection with the bounding box
+        isBboxIntersected,ta,tb = self.bboxIntersect(rayPositionGrid,rayDirectionGrid)
+        print(f'ta: {ta} tb: {tb}')
+        if(isBboxIntersected):
+            # Ray marching
+            t = ta + 0.0001
+            if (ta < 0.0):
+                t = 0.0
+            
+            while (t < tb):
+                #  Point along the ray
+                p = rayPosition/self.grid_size_to_km + t*rayDirection
+                # print(f'p_curr: {p} p[1]*self.km_to_m: {p[1]*self.km_to_m}')
+                # return
+                h = self.dem_elev[int(p[0]),int(p[2])] + self.lava_thickness[int(p[0]),int(p[2])] + self.solid_lava_thickness[int(p[0]),int(p[2])]
+                print(f'curr_p: {p} h: {h} p[1]*self.grid_size_to_km*self.km_to_m: {p[1]*self.grid_size_to_km*self.km_to_m}')
+                if (h > p[1]*self.grid_size_to_km*self.km_to_m):
+                    # print(f'p[0]: {p[0]} p[2]: {p[2]} h: {h} p[1]*self.km_to_m: {p[1]*self.km_to_m} p: {p}')
+                    return True,int(p[0]),int(p[2])
+                else:
+                    t += 1.0
+            
+            return False,-1,-1
