@@ -231,6 +231,7 @@ class Grid:
             i = int(idx//self.n_grid)
             k = int(idx%self.n_grid)
             if i==anchor_i and k==anchor_k:
+                # print(f'i: {i} k: {k}')
                 self.m_transforms_lvl2[idx] = ti.Matrix.identity(float,4)
                 self.m_transforms_lvl2[idx] *= self.grid_size_to_km
                 self.m_transforms_lvl2[idx][1,1] = 1.0
@@ -379,8 +380,7 @@ class Grid:
         a = [0,0]
         b = [self.n_grid, self.n_grid]
         p = rayPosition
-        d = rayDirection - rayPosition
-        # print(f'd: {d} p: {p}')
+        d = rayDirection
 
         t = 0.0
         # Ox
@@ -397,13 +397,11 @@ class Grid:
                 tmin = t
         elif (d[0] > epsilon):
             t = (b[0] - p[0]) / d[0]
-            # print(f't1: {t} tmin: {tmin} tmax: {tmax}')
             if (t < tmin):
                 return False,0.0,0.0
             if (t <= tmax):
                 tmax = t
             t = (a[0] - p[0]) / d[0]
-            # print(f't2: {t} tmin: {tmin} tmax: {tmax}')
             if (t >= tmin):
                 if(t > tmax):
                     return False,0.0,0.0
@@ -425,13 +423,11 @@ class Grid:
                 tmin = t
         elif (d[1] > epsilon):
             t = (b[1] - p[1]) / d[1]
-            # print(f't3: {t} tmin: {tmin} tmax: {tmax}')
             if (t < tmin):
                 return False,0.0,0.0
             if (t <= tmax):
                 tmax = t
             t = (a[1] - p[1]) / d[1]
-            # print(f't4: {t} tmin: {tmin} tmax: {tmax}')
             if (t >= tmin):
                 if(t > tmax):
                     return False,0.0,0.0
@@ -443,16 +439,13 @@ class Grid:
 
     def Intersect(self,rayPosition,rayDirection):
         rayPosList = [rayPosition[0],rayPosition[2]]
-        rayPositionGrid = np.array(rayPosList)
+        rayPositionGrid = np.array(rayPosList)/self.grid_size_to_km
         rayDirGridList = [rayDirection[0],rayDirection[2]]
         rayDirectionGrid = np.array(rayDirGridList)
-        # normRayDirectionGrid = np.linalg.norm(rayDirectionGrid)
-        # rayDirectionGrid /= normRayDirectionGrid
-        # rayDirectionGrid /= self.grid_size_to_km
         # print(f'rayPositionGrid: {rayPositionGrid} rayDirectionGrid: {rayDirectionGrid}')
         # Check the intersection with the bounding box
         isBboxIntersected,ta,tb = self.bboxIntersect(rayPositionGrid,rayDirectionGrid)
-        print(f'ta: {ta} tb: {tb}')
+        # print(f'isBboxIntersected: {isBboxIntersected} ta: {ta} tb: {tb}')
         if(isBboxIntersected):
             # Ray marching
             t = ta + 0.0001
@@ -463,13 +456,12 @@ class Grid:
                 #  Point along the ray
                 p = rayPosition/self.grid_size_to_km + t*rayDirection
                 # print(f'p_curr: {p} p[1]*self.km_to_m: {p[1]*self.km_to_m}')
-                # return
                 h = self.dem_elev[int(p[0]),int(p[2])] + self.lava_thickness[int(p[0]),int(p[2])] + self.solid_lava_thickness[int(p[0]),int(p[2])]
-                print(f'curr_p: {p} h: {h} p[1]*self.grid_size_to_km*self.km_to_m: {p[1]*self.grid_size_to_km*self.km_to_m}')
+                # print(f'curr_p: {p} h: {h} p[1]*self.grid_size_to_km*self.km_to_m: {p[1]*self.grid_size_to_km*self.km_to_m}')
                 if (h > p[1]*self.grid_size_to_km*self.km_to_m):
                     # print(f'p[0]: {p[0]} p[2]: {p[2]} h: {h} p[1]*self.km_to_m: {p[1]*self.km_to_m} p: {p}')
-                    return True,int(p[0]),int(p[2])
+                    return True,p*self.grid_size_to_km
                 else:
                     t += 1.0
             
-            return False,-1,-1
+        return False,rayPosition*9999

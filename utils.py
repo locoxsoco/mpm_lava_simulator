@@ -1,6 +1,6 @@
 import math
 
-def pixelToRay(camera, px, py, width, height):
+def pixelToRay(camera, px, py, width, height, window_shape):
     # Get coordinates
     view = (camera.curr_lookat - camera.curr_position).normalized()
     horizontal = (view.cross(camera.curr_up)).normalized()
@@ -12,7 +12,7 @@ def pixelToRay(camera, px, py, width, height):
     rad = math.radians(55)
 
     vLength = math.tan(rad / 2.0) * length
-    hLength = vLength * width / height
+    hLength = vLength * width / height * (window_shape[0]/window_shape[1])
     vertical = vertical*vLength
     horizontal = horizontal*hLength
 

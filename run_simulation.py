@@ -9,6 +9,8 @@ from MAGFLOW.driver import Driver as MAGFLOWDriver
 from utils import *
 
 ti.init(arch=ti.gpu)
+particles_pos = ti.Vector.field(3, dtype=ti.f32, shape = 1)
+vector_outside = ti.Vector([-9999, -9999, -9999])
 
 ######################### Debug Parameters #########################
 normal_line_column = 0
@@ -35,7 +37,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
         debug_mesh_checkbox = w.checkbox("Show mesh", debug_mesh_checkbox)
     
     run_state_text = 'Running' if run_state else 'Paused'
-    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.165) as w:
+    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.185) as w:
         # w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
         w.text(f'Simulation time: {simulation_time} s')
         if w.button("Run"):
@@ -52,7 +54,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     
     customPulseSize = 0.0
     customPulseVolume = 0.0
-    with gui.sub_window(f'Pulse Brush', 0.0, 0.165, 0.145, 0.125) as w:
+    with gui.sub_window(f'Pulse Brush', 0.0, 0.185, 0.145, 0.125) as w:
         customPulseSize = w.slider_float("Size (km)", customPulseSize, 0.0, 0.5)
         customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
@@ -71,6 +73,7 @@ def render(camera,window,scene,canvas,heightmap,grid):
     if(debug_grid_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
         scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
+        scene.particles(particles_pos, color = (0.0, 1.0, 0.0), radius = 0.1)
         scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
     if(debug_normals_checkbox):
         for i in range(45):
@@ -109,7 +112,7 @@ def main():
     heightmap = solver.Heightmap
     grid = solver.Grid
     
-    res = (950, 950)
+    res = (1920, 1080)
     window = ti.ui.Window(f'Real {simulation_method} 3D', res, vsync=False)
 
     canvas = window.get_canvas()
@@ -125,14 +128,24 @@ def main():
     while window.running:
         if(simulation_method == 'MAGFLOW'):
             mouse = window.get_cursor_pos()
+            # print(dir(ti.ui))
+            # print(f'window.is_pressed(ti.ui.LMB): {window.is_pressed(ti.ui.LMB)}')
+            # print(f'window.is_pressed(ti.ui.MMB): {window.is_pressed(ti.ui.MMB)}')
+            # print(f'window.is_pressed(ti.ui.RMB): {window.is_pressed(ti.ui.RMB)}')
             if window.is_pressed(ti.ui.CTRL):
-                rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1)
-                print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
-                validAnchor,anchor_x,anchor_y = solver.Grid.Intersect(rayPoint,rayDirection)
+                rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1, window.get_window_shape())
+                # print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
+                validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
                 # if(validAnchor):
                 #     print('Yes')
-                solver.Grid.calculate_m_transforms_lvl2(anchor_x,anchor_y)
+                # update_particle_pos(anchor_x,anchor_y)
+                particles_pos[0] = ti_vector_pos
+                # print(f'validAnchor: {validAnchor} , ti_vector_pos/grid.grid_size_to_km: {int(ti_vector_pos[0]/grid.grid_size_to_km)},{int(ti_vector_pos[2]/grid.grid_size_to_km)}')
+                solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos[0]/grid.grid_size_to_km),int(ti_vector_pos[2]/grid.grid_size_to_km))
             # ini_pulse_time = time.time()
+            else:
+                particles_pos[0] = vector_outside
+                solver.Grid.calculate_m_transforms_lvl2(int(9999),int(9999))
         if(pulse_state == 1):
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
