@@ -7,30 +7,46 @@ from config_builder import SimConfig
 from MOLASSES.driver import Driver as MOLASSESDriver
 from MAGFLOW.driver import Driver as MAGFLOWDriver
 from utils import *
+from enum import Enum
 
 ti.init(arch=ti.gpu)
 particles_pos = ti.Vector.field(3, dtype=ti.f32, shape = 1)
 vector_outside = ti.Vector([-9999, -9999, -9999])
 is_particles_outside = False
-particle_radius = 0.1
+particle_radius = 0.5
 particle_color_ti = ti.Vector.field(4, float, 1)
 particle_color_ti[0] = ti.Vector([0.0/256.0, 256.0/256.0, 0.0/256.0, 0.2])
 
 ######################### Debug Parameters #########################
+class Brush(Enum):
+    DEM = 0
+    LAVA = 1
+    HEAT = 2
+    COOL = 3
+
+
 normal_line_column = 0
 debug_normals_checkbox = 0
 debug_grid_checkbox = 1
 debug_mesh_checkbox = 0
+dem_checkbox = 1
+lava_checkbox = 0
+heat_checkbox = 0
+cool_checkbox = 0
+brush_type = Brush.DEM
 run_state = 0
 pulse_state = 0
 #######################################################################
-
 
 def show_options(gui,pulseVolume,grid,simulation_time):
     global normal_line_column
     global debug_normals_checkbox
     global debug_grid_checkbox
     global debug_mesh_checkbox
+    global dem_checkbox
+    global lava_checkbox
+    global heat_checkbox
+    global cool_checkbox
     global run_state
     global pulse_state
     global particle_radius
@@ -57,10 +73,35 @@ def show_options(gui,pulseVolume,grid,simulation_time):
         if w.button("Pause Pulse"):
             pulse_state = 0
     
-    customPulseVolume = 0.0
-    with gui.sub_window(f'Pulse Brush', 0.0, 0.185, 0.145, 0.125) as w:
-        particle_radius = w.slider_float("Size (km)", particle_radius, 0.0, 0.5)
-        customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
+    # customPulseVolume = 0.0
+    with gui.sub_window(f'Brush', 0.0, 0.185, 0.145, 0.145) as w:
+        dem_checkbox = w.checkbox("DEM", dem_checkbox)
+        lava_checkbox = w.checkbox("Lava", lava_checkbox)
+        heat_checkbox = w.checkbox("Heat", heat_checkbox)
+        cool_checkbox = w.checkbox("Cool", cool_checkbox)
+        particle_radius = w.slider_float("Size (km)", particle_radius, 0.1, 1)
+
+        if(dem_checkbox):
+            brush_type = Brush.DEM
+            lava_checkbox = 0
+            heat_checkbox = 0
+            cool_checkbox = 0
+        elif(lava_checkbox):
+            brush_type = Brush.LAVA
+            dem_checkbox = 0
+            heat_checkbox = 0
+            cool_checkbox = 0
+        elif(heat_checkbox):
+            brush_type = Brush.HEAT
+            dem_checkbox = 0
+            lava_checkbox = 0
+            cool_checkbox = 0
+        else:
+            brush_type = Brush.COOL
+            dem_checkbox = 0
+            lava_checkbox = 0
+            heat_checkbox = 0
+        # customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
     # with gui.sub_window(f'Lava Properties', 0.0, 0.190, 0.145, 0.125) as w:
     #     grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
@@ -77,7 +118,7 @@ def render(camera,window,scene,canvas,heightmap,grid):
     if(debug_grid_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
         scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
-        scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
+        # scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
         scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius/2.0)
     if(debug_normals_checkbox):
         for i in range(45):
@@ -141,24 +182,27 @@ def main():
                 rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1, window.get_window_shape())
                 # print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
+                if(window.is_pressed(ti.ui.LMB)):
+                    ti_vector_pos_grid = ti_vector_pos/grid.grid_size_to_km
+                    solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
                 # if(validAnchor):
                 #     print('Yes')
                 # update_particle_pos(anchor_x,anchor_y)
                 particles_pos[0] = ti_vector_pos
                 is_particles_outside = False
                 # print(f'validAnchor: {validAnchor} , ti_vector_pos/grid.grid_size_to_km: {int(ti_vector_pos[0]/grid.grid_size_to_km)},{int(ti_vector_pos[2]/grid.grid_size_to_km)}')
-                solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos[0]/grid.grid_size_to_km),int(ti_vector_pos[2]/grid.grid_size_to_km))
+                # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
             # ini_pulse_time = time.time()
             else:
                 if not is_particles_outside:
                     particles_pos[0] = vector_outside
-                    solver.Grid.calculate_m_transforms_lvl2(int(9999),int(9999))
+                    # solver.Grid.calculate_m_transforms_lvl2(int(9999),int(9999))
                     is_particles_outside = True
         if(pulse_state == 1):
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
             elif(simulation_method == 'MAGFLOW'):
-                solver.set_active_pulses()
+                solver.set_active_pulses(200,200,0.1)
                 # 1. Compute volumetrix lava flux for cell vents
                 solver.Grid.pulse()
                 # print(f'[PULSE] {time.time()-ini_pulse_time}')

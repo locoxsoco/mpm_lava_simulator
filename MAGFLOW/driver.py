@@ -93,11 +93,9 @@ class Driver:
 
         return local_CAList
 
-    def set_active_pulses(self):
-        center_x, center_y = 200, 200
-        radius = 100
+    def set_active_pulses(self,center_x,center_y,radius):
         height = 0.0001
-        radius_grid = math.ceil(radius/(self.Grid.grid_size_to_km * self.Grid.km_to_m))
+        radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
         bbox_max_x = center_x + radius_grid
