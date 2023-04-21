@@ -11,6 +11,10 @@ from utils import *
 ti.init(arch=ti.gpu)
 particles_pos = ti.Vector.field(3, dtype=ti.f32, shape = 1)
 vector_outside = ti.Vector([-9999, -9999, -9999])
+is_particles_outside = False
+particle_radius = 0.1
+particle_color_ti = ti.Vector.field(4, float, 1)
+particle_color_ti[0] = ti.Vector([0.0/256.0, 256.0/256.0, 0.0/256.0, 0.2])
 
 ######################### Debug Parameters #########################
 normal_line_column = 0
@@ -29,6 +33,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global debug_mesh_checkbox
     global run_state
     global pulse_state
+    global particle_radius
 
     with gui.sub_window("Debug", 0.0, 0.875, 0.14, 0.125) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
@@ -52,10 +57,9 @@ def show_options(gui,pulseVolume,grid,simulation_time):
         if w.button("Pause Pulse"):
             pulse_state = 0
     
-    customPulseSize = 0.0
     customPulseVolume = 0.0
     with gui.sub_window(f'Pulse Brush', 0.0, 0.185, 0.145, 0.125) as w:
-        customPulseSize = w.slider_float("Size (km)", customPulseSize, 0.0, 0.5)
+        particle_radius = w.slider_float("Size (km)", particle_radius, 0.0, 0.5)
         customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
     # with gui.sub_window(f'Lava Properties', 0.0, 0.190, 0.145, 0.125) as w:
@@ -73,8 +77,8 @@ def render(camera,window,scene,canvas,heightmap,grid):
     if(debug_grid_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
         scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
-        scene.particles(particles_pos, color = (0.0, 1.0, 0.0), radius = 0.1)
         scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
+        scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius/2.0)
     if(debug_normals_checkbox):
         for i in range(45):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
@@ -88,6 +92,7 @@ def render(camera,window,scene,canvas,heightmap,grid):
 def main():
     global run_state
     global pulse_state
+    global is_particles_outside
     
     parser = argparse.ArgumentParser(description='Lava Sim Taichi')
     parser.add_argument('--scene_file',
@@ -140,12 +145,15 @@ def main():
                 #     print('Yes')
                 # update_particle_pos(anchor_x,anchor_y)
                 particles_pos[0] = ti_vector_pos
+                is_particles_outside = False
                 # print(f'validAnchor: {validAnchor} , ti_vector_pos/grid.grid_size_to_km: {int(ti_vector_pos[0]/grid.grid_size_to_km)},{int(ti_vector_pos[2]/grid.grid_size_to_km)}')
                 solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos[0]/grid.grid_size_to_km),int(ti_vector_pos[2]/grid.grid_size_to_km))
             # ini_pulse_time = time.time()
             else:
-                particles_pos[0] = vector_outside
-                solver.Grid.calculate_m_transforms_lvl2(int(9999),int(9999))
+                if not is_particles_outside:
+                    particles_pos[0] = vector_outside
+                    solver.Grid.calculate_m_transforms_lvl2(int(9999),int(9999))
+                    is_particles_outside = True
         if(pulse_state == 1):
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
