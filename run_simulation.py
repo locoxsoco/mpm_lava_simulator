@@ -15,7 +15,9 @@ vector_outside = ti.Vector([-9999, -9999, -9999])
 is_particles_outside = False
 particle_radius = 0.5
 particle_color_ti = ti.Vector.field(4, float, 1)
-particle_color_ti[0] = ti.Vector([0.0/256.0, 256.0/256.0, 0.0/256.0, 0.2])
+particle_color_green = ti.Vector([0.0/256.0, 256.0/256.0, 0.0/256.0, 0.2])
+particle_color_red = ti.Vector([256.0/256.0, 0.0/256.0, 0.0/256.0, 0.2])
+particle_color_ti[0] = particle_color_green
 
 ######################### Debug Parameters #########################
 class Brush(Enum):
@@ -32,7 +34,6 @@ debug_mesh_checkbox = 0
 dem_checkbox = 1
 lava_checkbox = 0
 heat_checkbox = 0
-cool_checkbox = 0
 brush_type = Brush.DEM
 run_state = 0
 pulse_state = 0
@@ -50,6 +51,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global run_state
     global pulse_state
     global particle_radius
+    global brush_type
 
     with gui.sub_window("Debug", 0.0, 0.875, 0.14, 0.125) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
@@ -74,37 +76,29 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             pulse_state = 0
     
     # customPulseVolume = 0.0
-    with gui.sub_window(f'Brush', 0.0, 0.185, 0.145, 0.145) as w:
+    with gui.sub_window(f'Brush', 0.0, 0.185, 0.160, 0.125) as w:
         dem_checkbox = w.checkbox("DEM", dem_checkbox)
         lava_checkbox = w.checkbox("Lava", lava_checkbox)
         heat_checkbox = w.checkbox("Heat", heat_checkbox)
-        cool_checkbox = w.checkbox("Cool", cool_checkbox)
         particle_radius = w.slider_float("Size (km)", particle_radius, 0.1, 1)
 
-        if(dem_checkbox):
+        if(dem_checkbox and brush_type != Brush.DEM):
             brush_type = Brush.DEM
             lava_checkbox = 0
             heat_checkbox = 0
-            cool_checkbox = 0
-        elif(lava_checkbox):
+        elif(lava_checkbox and brush_type != Brush.LAVA):
             brush_type = Brush.LAVA
             dem_checkbox = 0
             heat_checkbox = 0
-            cool_checkbox = 0
-        elif(heat_checkbox):
+        elif(heat_checkbox and brush_type != Brush.HEAT):
             brush_type = Brush.HEAT
             dem_checkbox = 0
             lava_checkbox = 0
-            cool_checkbox = 0
-        else:
-            brush_type = Brush.COOL
-            dem_checkbox = 0
-            lava_checkbox = 0
-            heat_checkbox = 0
         # customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
-    # with gui.sub_window(f'Lava Properties', 0.0, 0.190, 0.145, 0.125) as w:
-    #     grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
+    with gui.sub_window(f'Lava Properties', 0.0, 0.310, 0.25, 0.085) as w:
+        grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
+        grid.cooling_accelerator_factor = w.slider_float("Cooling Factor (x1000)", grid.cooling_accelerator_factor, 0.001, 1.0)
     
     return pulseVolume/10.0
 
@@ -134,6 +128,7 @@ def main():
     global run_state
     global pulse_state
     global is_particles_outside
+    global particle_color_ti
     
     parser = argparse.ArgumentParser(description='Lava Sim Taichi')
     parser.add_argument('--scene_file',
@@ -169,7 +164,7 @@ def main():
     camera.position(0.0, heightmap.hm_elev_range_km, 0.0)
     camera.lookat(heightmap.hm_width_px*heightmap.px_to_km/2.0, 0.0, heightmap.hm_height_px*heightmap.px_to_km/2.0)
     camera.fov(55)
-    substeps = 5
+    substeps = 1
     simulation_time = 0.0
     while window.running:
         if(simulation_method == 'MAGFLOW'):
@@ -184,12 +179,31 @@ def main():
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
                 if(window.is_pressed(ti.ui.LMB)):
                     ti_vector_pos_grid = ti_vector_pos/grid.grid_size_to_km
-                    solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                    if (brush_type == Brush.DEM):
+                        if window.is_pressed(ti.ui.SHIFT):
+                            solver.remove_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                        else:
+                            solver.add_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                        solver.Grid.calculate_m_transforms_lvl0()
+                    elif (brush_type == Brush.LAVA):
+                        if window.is_pressed(ti.ui.SHIFT):
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,-1)
+                        else:
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,1)
+                    elif (brush_type == Brush.HEAT):
+                        if window.is_pressed(ti.ui.SHIFT):
+                            solver.remove_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                        else:
+                            solver.add_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
                 # if(validAnchor):
                 #     print('Yes')
                 # update_particle_pos(anchor_x,anchor_y)
                 particles_pos[0] = ti_vector_pos
                 is_particles_outside = False
+                if window.is_pressed(ti.ui.SHIFT):
+                    particle_color_ti[0] = particle_color_red
+                else:
+                    particle_color_ti[0] = particle_color_green
                 # print(f'validAnchor: {validAnchor} , ti_vector_pos/grid.grid_size_to_km: {int(ti_vector_pos[0]/grid.grid_size_to_km)},{int(ti_vector_pos[2]/grid.grid_size_to_km)}')
                 # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
             # ini_pulse_time = time.time()
@@ -202,11 +216,11 @@ def main():
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
             elif(simulation_method == 'MAGFLOW'):
-                solver.set_active_pulses(200,200,0.1)
-                # 1. Compute volumetrix lava flux for cell vents
-                solver.Grid.pulse()
-                # print(f'[PULSE] {time.time()-ini_pulse_time}')
-            solver.Grid.calculate_m_transforms_lvl1()
+                solver.set_active_pulses(200,200,0.1,1)
+        # 1. Compute volumetrix lava flux for cell vents
+        solver.Grid.pulse()
+        # print(f'[PULSE] {time.time()-ini_pulse_time}')
+        solver.Grid.calculate_m_transforms_lvl1()
         if(run_state == 1 or run_state == 2):
             if(simulation_method == 'MOLASSES'):
                 solver.Grid.distribute()
@@ -225,15 +239,15 @@ def main():
                     solver.Grid.global_delta_time = global_delta_time
                     simulation_time += global_delta_time
                     # print(f'[GLOBAL] {time.time()-ini_global_time}')
-                    # print(f'global_delta_time: {solver.Grid.global_delta_time}')
+                    print(f'[Driver] global_delta_time: {solver.Grid.global_delta_time}')
                     # 4. Update state of the cell
                     # 4.1 Compute the new lava thickness
                     # ini_lavah_time = time.time()
-                    solver.Grid.computeNewLavaThickness()
+                    solver.Grid.computeNewLavaThickness(global_delta_time)
                     # print(f'[NEWLAVAH] {time.time()-ini_lavah_time}')
                     # solver.Grid.updateLavaThickness()
                     # 4.2 Compute the heat radiation loss
-                    solver.Grid.computeHeatRadiationLoss()
+                    solver.Grid.computeHeatRadiationLoss(global_delta_time)
                     solver.Grid.updateTemperature()
                     # 4.3 Transfer an appropriate amount of lava thickness to the solid lava thickness if there is solidification
                     # solver.Grid.computeLavaSolidification()

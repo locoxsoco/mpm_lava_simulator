@@ -93,7 +93,7 @@ class Driver:
 
         return local_CAList
 
-    def set_active_pulses(self,center_x,center_y,radius):
+    def set_active_pulses(self,center_x,center_y,radius,active_value: int):
         height = 0.0001
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
@@ -105,5 +105,61 @@ class Driver:
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
                 if(u<radius_grid*radius_grid):
-                    self.Grid.is_active[x,y] = 1
+                    self.Grid.is_active[x,y] = active_value
                     self.Grid.pulse_volume[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
+        
+    def add_dem(self,center_x,center_y,radius):
+        height = 10.0
+        radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
+        bbox_min_x = center_x - radius_grid
+        bbox_min_y = center_y - radius_grid
+        bbox_max_x = center_x + radius_grid
+        bbox_max_y = center_y + radius_grid
+
+        for y in range(bbox_min_y,bbox_max_y):
+            for x in range(bbox_min_x,bbox_max_x):
+                u = (center_x-x)**2 + (center_y-y)**2
+                if(u<radius_grid*radius_grid):
+                    self.Grid.dem_elev[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
+    
+    def remove_dem(self,center_x,center_y,radius):
+        height = 10.0
+        radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
+        bbox_min_x = center_x - radius_grid
+        bbox_min_y = center_y - radius_grid
+        bbox_max_x = center_x + radius_grid
+        bbox_max_y = center_y + radius_grid
+
+        for y in range(bbox_min_y,bbox_max_y):
+            for x in range(bbox_min_x,bbox_max_x):
+                u = (center_x-x)**2 + (center_y-y)**2
+                if(u<radius_grid*radius_grid):
+                    self.Grid.dem_elev[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
+    
+    def add_heat(self,center_x,center_y,radius):
+        height = 10.0
+        radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
+        bbox_min_x = center_x - radius_grid
+        bbox_min_y = center_y - radius_grid
+        bbox_max_x = center_x + radius_grid
+        bbox_max_y = center_y + radius_grid
+
+        for y in range(bbox_min_y,bbox_max_y):
+            for x in range(bbox_min_x,bbox_max_x):
+                u = (center_x-x)**2 + (center_y-y)**2
+                if(u<radius_grid*radius_grid):
+                    self.Grid.heat_quantity[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
+    
+    def remove_heat(self,center_x,center_y,radius):
+        height = 10.0
+        radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
+        bbox_min_x = center_x - radius_grid
+        bbox_min_y = center_y - radius_grid
+        bbox_max_x = center_x + radius_grid
+        bbox_max_y = center_y + radius_grid
+
+        for y in range(bbox_min_y,bbox_max_y):
+            for x in range(bbox_min_x,bbox_max_x):
+                u = (center_x-x)**2 + (center_y-y)**2
+                if(u<radius_grid*radius_grid):
+                    self.Grid.heat_quantity[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
