@@ -29,7 +29,8 @@ class Brush(Enum):
 
 normal_line_column = 0
 debug_normals_checkbox = 0
-debug_grid_checkbox = 1
+debug_grid_dem_checkbox = 1
+debug_grid_lava_checkbox = 1
 debug_mesh_checkbox = 0
 dem_checkbox = 1
 lava_checkbox = 0
@@ -42,7 +43,8 @@ pulse_state = 0
 def show_options(gui,pulseVolume,grid,simulation_time):
     global normal_line_column
     global debug_normals_checkbox
-    global debug_grid_checkbox
+    global debug_grid_dem_checkbox
+    global debug_grid_lava_checkbox
     global debug_mesh_checkbox
     global dem_checkbox
     global lava_checkbox
@@ -53,10 +55,11 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global particle_radius
     global brush_type
 
-    with gui.sub_window("Debug", 0.0, 0.875, 0.14, 0.125) as w:
+    with gui.sub_window("Debug", 0.0, 0.82, 0.14, 0.145) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
         normal_line_column = w.slider_int("Column", normal_line_column, 0, 100)
-        debug_grid_checkbox = w.checkbox("Show grid", debug_grid_checkbox)
+        debug_grid_dem_checkbox = w.checkbox("Show grid dem", debug_grid_dem_checkbox)
+        debug_grid_lava_checkbox = w.checkbox("Show grid lava", debug_grid_lava_checkbox)
         debug_mesh_checkbox = w.checkbox("Show mesh", debug_mesh_checkbox)
     
     run_state_text = 'Running' if run_state else 'Paused'
@@ -76,7 +79,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             pulse_state = 0
     
     # customPulseVolume = 0.0
-    with gui.sub_window(f'Brush', 0.0, 0.185, 0.160, 0.125) as w:
+    with gui.sub_window(f'Brush (Ctrl to add, Ctrl+Shift to remove)', 0.0, 0.185, 0.165, 0.125) as w:
         dem_checkbox = w.checkbox("DEM", dem_checkbox)
         lava_checkbox = w.checkbox("Lava", lava_checkbox)
         heat_checkbox = w.checkbox("Heat", heat_checkbox)
@@ -98,9 +101,8 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     
     with gui.sub_window(f'Lava Properties', 0.0, 0.310, 0.25, 0.085) as w:
         grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
-        grid.cooling_accelerator_factor = w.slider_float("Cooling Factor (x1000)", grid.cooling_accelerator_factor, 0.001, 1.0)
-    
-    return pulseVolume/10.0
+        grid.cooling_accelerator_factor = w.slider_float("Cooling Factor", grid.cooling_accelerator_factor, 1.0 , 1000.0)
+
 
 def render(camera,window,scene,canvas,heightmap,grid):
     camera.track_user_inputs(window, movement_speed=0.03, hold_key=ti.ui.RMB)
@@ -108,12 +110,12 @@ def render(camera,window,scene,canvas,heightmap,grid):
 
     if(debug_mesh_checkbox):
         scene.mesh(vertices=heightmap.heightmap_positions, indices=heightmap.heightmap_indices,per_vertex_color=heightmap.heightmap_colors,normals=heightmap.heightmap_normals)
-
-    if(debug_grid_checkbox):
+    if(debug_grid_dem_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
+    if(debug_grid_lava_checkbox):
         scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
-        # scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
-        scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius/2.0)
+    # scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
+    scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius/2.0)
     if(debug_normals_checkbox):
         for i in range(45):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
@@ -179,6 +181,9 @@ def main():
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
                 if(window.is_pressed(ti.ui.LMB)):
                     ti_vector_pos_grid = ti_vector_pos/grid.grid_size_to_km
+                    # print(f'i,k: {int(ti_vector_pos_grid[0])},{int(ti_vector_pos_grid[2])} lava thickness: {solver.Grid.lava_thickness[int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2])]}')
+                    # print(f'i,k: {200},{200} lava thickness: {solver.Grid.lava_thickness[200,200]}')
+                    # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
                     if (brush_type == Brush.DEM):
                         if window.is_pressed(ti.ui.SHIFT):
                             solver.remove_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
@@ -205,7 +210,6 @@ def main():
                 else:
                     particle_color_ti[0] = particle_color_green
                 # print(f'validAnchor: {validAnchor} , ti_vector_pos/grid.grid_size_to_km: {int(ti_vector_pos[0]/grid.grid_size_to_km)},{int(ti_vector_pos[2]/grid.grid_size_to_km)}')
-                # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
             # ini_pulse_time = time.time()
             else:
                 if not is_particles_outside:
@@ -239,7 +243,7 @@ def main():
                     solver.Grid.global_delta_time = global_delta_time
                     simulation_time += global_delta_time
                     # print(f'[GLOBAL] {time.time()-ini_global_time}')
-                    print(f'[Driver] global_delta_time: {solver.Grid.global_delta_time}')
+                    # print(f'[Driver] global_delta_time: {solver.Grid.global_delta_time}')
                     # 4. Update state of the cell
                     # 4.1 Compute the new lava thickness
                     # ini_lavah_time = time.time()
@@ -255,7 +259,7 @@ def main():
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)
-        solver.active_flow.pulsevolume = show_options(gui,solver.active_flow.pulsevolume,solver.Grid,simulation_time)
+        show_options(gui,solver.active_flow.pulsevolume,solver.Grid,simulation_time)
         # print(f'[RUNSIMULATION] solver.active_flow.pulsevolume: {solver.active_flow.pulsevolume}')
         window.show()
 
