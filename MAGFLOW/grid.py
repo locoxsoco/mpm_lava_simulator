@@ -28,8 +28,8 @@ cube_face_normals_list = np.array([
     [ 0.0, 0.0, -1.0],
     [ 0.0, 0.0,  1.0]
 ], dtype=np.float32)
-# Heightmap color
-cube_colors_list_lvl0 = np.array([
+# Heightmap and solid lava color
+cube_colors_list_dem = np.array([
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
@@ -37,95 +37,16 @@ cube_colors_list_lvl0 = np.array([
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
     [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0]
+    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
 ], dtype=np.float32)
 # Lava colors
-# High temperature
-cube_colors_list_lava_high = np.array([
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-    [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0]
-], dtype=np.float32)
-# High-Medium temperature
-cube_colors_list_lava_high_medium = np.array([
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0],
-    [233.0/256.0, 208.0/256.0, 28.0/256.0, 1.0]
-], dtype=np.float32)
-# Medium temperature
-cube_colors_list_lava_medium = np.array([
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0],
-    [116.0/256.0, 45.0/256.0, 17.0/256.0, 1.0]
-], dtype=np.float32)
-# Low-Medium temperature
-cube_colors_list_lava_low_medium = np.array([
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0]
-], dtype=np.float32)
-# Low temperature
-cube_colors_list_lava_low = np.array([
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0],
-    [54.0/256.0, 47.0/256.0, 54.0/256.0, 1.0]
-], dtype=np.float32)
-# cube_colors_list_lvl1 = np.array([
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0],
-#     [169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0]
-# ], dtype=np.float32)
-cube_colors_list_lvl1 = np.array([
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0],
-    [207.0/256.0, 16.0/256.0, 32.0/256.0, 1.0]
-], dtype=np.float32)
-# Crust color
-cube_colors_list_lvl2 = np.array([
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0],
-    [93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0]
-], dtype=np.float32)
+color_lava_high = ti.Vector([169.0/256.0, 24.0/256.0, 35.0/256.0, 1.0])
+color_lava_low = ti.Vector([93.0/256.0, 40.0/256.0, 39.0/256.0, 1.0])
+colors_lava = np.array([[0.5, 0.0, 0.0, 1.0],
+                   [1.0, 0.0, 0.0, 1.0],
+                   [1.0, 0.5, 0.0, 1.0],
+                   [1.0, 1.0, 0.0, 1.0],
+                   [1.0, 1.0, 1.0, 1.0]])
 # Select color
 cube_colors_list_lvl2 = np.array([
     [0.0/256.0, 256.0/256.0, 0.0/256.0, 1.0],
@@ -141,31 +62,37 @@ cube_colors_list_lvl2 = np.array([
 @ti.data_oriented
 class Grid:
     def __init__(self,n_grid,dim,heightmap):
-        self.grid_size_to_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
         self.km_to_m = 1000.0
+        self.grid_size_to_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
+        self.scaled_grid_size_m = 5.0
+        self.scaled_grid_size_km = 0.005
+        self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
+        self.grid_size_km_to_scaled_grid_size_km = self.scaled_grid_size_km/self.grid_size_to_km
         print(f'self.grid_size_to_km: {self.grid_size_to_km} self.km_to_m: {self.km_to_m}')
 
-        self.cube_positions = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions.from_numpy(cube_verts_list)
-        self.cube_positions2 = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions2.from_numpy(cube_verts_list)
-        self.cube_positions3 = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions3.from_numpy(cube_verts_list)
+        self.rendering_lava_height_minimum_m = 0.5
+        self.update_temperature_lava_height_minimum_m = 0.1
+        self.delta_total_height_minimum_m = 1.0
+        self.flux_height_minimum_m = 5.0
+        self.global_delta_time_maximum_s = 8.0
+
+        self.cube_positions_dem = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_positions_dem.from_numpy(cube_verts_list)
+        self.cube_positions_lava1 = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_positions_lava1.from_numpy(cube_verts_list)
         self.cube_indices = ti.field(ti.i32, shape=len(cube_faces_list))
         self.cube_indices.from_numpy(cube_faces_list)
-        self.cube_normals = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_normals.from_numpy(cube_face_normals_list)
-        self.cube_colors_lvl0 = ti.Vector.field(4, ti.f32, 8)
-        self.cube_colors_lvl0.from_numpy(cube_colors_list_lvl0)
-        self.cube_colors_lvl1 = ti.Vector.field(4, ti.f32, 8)
-        self.cube_colors_lvl1.from_numpy(cube_colors_list_lvl1)
-        self.cube_colors_lvl2 = ti.Vector.field(4, ti.f32, 8)
-        self.cube_colors_lvl2.from_numpy(cube_colors_list_lvl2)
-        self.curr_cube_positions = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_colors_dem = ti.Vector.field(4, ti.f32, 8)
+        self.cube_colors_dem.from_numpy(cube_colors_list_dem)
+        self.cube_positions_lava = ti.Vector.field(dim, ti.f32, 8*(n_grid*n_grid))
+        self.cube_indices_lava = ti.field(ti.i32, shape=3*2*6*(n_grid*n_grid))
+        self.cube_colors_lava = ti.Vector.field(4, ti.f32, 8*n_grid*n_grid)
+
+        self.colors_lava = ti.Vector.field(4, ti.f32, 5)
+        self.colors_lava.from_numpy(colors_lava)
 
         self.m_transforms_lvl0 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
         self.m_transforms_lvl1 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
-        self.m_transforms_lvl2 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
 
         self.n_grid = n_grid
 
@@ -180,14 +107,14 @@ class Grid:
         nCols = np.array([+0,+0,+1,-1,+1,-1,+1,-1], dtype=np.int32)
         neighCodes = np.array([1,2,4,8,16,32,64,128], dtype=np.int32)
         sqrt2 = ti.math.sqrt(2)
-        neighDistances = np.array([1.0*self.grid_size_to_km*self.km_to_m,
-                                   1.0*self.grid_size_to_km*self.km_to_m,
-                                   1.0*self.grid_size_to_km*self.km_to_m,
-                                   1.0*self.grid_size_to_km*self.km_to_m,
-                                   sqrt2*self.grid_size_to_km*self.km_to_m,
-                                   sqrt2*self.grid_size_to_km*self.km_to_m,
-                                   sqrt2*self.grid_size_to_km*self.km_to_m,
-                                   sqrt2*self.grid_size_to_km*self.km_to_m], dtype=np.float32)
+        neighDistances = np.array([1.0*self.scaled_grid_size_m,
+                                   1.0*self.scaled_grid_size_m,
+                                   1.0*self.scaled_grid_size_m,
+                                   1.0*self.scaled_grid_size_m,
+                                   sqrt2*self.scaled_grid_size_m,
+                                   sqrt2*self.scaled_grid_size_m,
+                                   sqrt2*self.scaled_grid_size_m,
+                                   sqrt2*self.scaled_grid_size_m], dtype=np.float32)
 
         self.dem_elev = ti.field(ti.f32, (n_grid, ) * (dim-1))
         self.lava_thickness = ti.field(ti.f32, (n_grid, ) * (dim-1))
@@ -206,17 +133,25 @@ class Grid:
         self.specific_heat_capacity = 1150.0
         self.emissivity = 0.9
         self.ambient_temperature = 298.15
+        self.ambient_temperature = 1200.0
         self.solidification_temperature = 950.0
         self.extrusion_temperature = 1400.0
         self.H2O = 0.06325
         self.gravity = 9.81
-        self.delta_time_c = 0.1
-        self.cell_area = (self.grid_size_to_km*self.km_to_m)**2
-        print(f'self.grid_size_to_km: {self.grid_size_to_km} self.cell_area: {self.cell_area}')
+        self.delta_time_c = 0.2
+        self.cell_area_m = (self.scaled_grid_size_m)**2
+        print(f'self.grid_size_to_km: {self.grid_size_to_km} self.cell_area_m: {self.cell_area_m}')
         self.global_delta_time = 0.0
         self.c_v = self.specific_heat_capacity
         self.max_lava_thickness = 250.0
         self.cooling_accelerator_factor = 1.0
+        self.stefan_boltzmann_constant = 5.68 * 10**(-4)
+
+        self.temperature_lava_high = self.solidification_temperature + (self.extrusion_temperature-self.solidification_temperature)
+        self.temperature_lava_high_medium = self.solidification_temperature + (self.extrusion_temperature-self.solidification_temperature)*3.0/4.0
+        self.temperature_lava_medium = self.solidification_temperature + (self.extrusion_temperature-self.solidification_temperature)/2.0 
+        self.temperature_lava_low_medium = self.solidification_temperature + (self.extrusion_temperature-self.solidification_temperature)/4.0
+        self.temperature_lava_low = self.solidification_temperature
 
         self.nRows = ti.field(ti.i32, 8)
         self.nCols = ti.field(ti.i32, 8)
@@ -230,14 +165,15 @@ class Grid:
 
         self.active = ti.field(ti.i32, (n_grid, ) * (dim-1))
         self.init_values(heightmap)
-        self.calculate_m_transforms_lvl0()
-        self.calculate_m_transforms_lvl1()
+        self.initialize_m_transforms_lvl0()
+        self.initialize_m_transforms_lvl1()
+        self.initialize_lava_cubes()
 
     @ti.kernel
     def init_values(self,heightmap: ti.template()):
         for i,j in self.dem_elev:
             # self.dem_elev[i,j] = heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((j/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]*self.km_to_m
-            self.dem_elev[i,j] = heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m
+            self.dem_elev[i,j] = heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m*self.grid_size_m_to_scaled_grid_size_m
             self.parentcodes[i,j] = 0
             self.active[i,j] = -1
             self.lava_thickness[i,j] = 0.0
@@ -251,132 +187,139 @@ class Grid:
 
             # if(i==200 and j==200):
             #     self.lava_thickness[i,j] = 50.0
+    
+    @ti.kernel
+    def initialize_m_transforms_lvl0(self):
+        for idx in self.m_transforms_lvl0:
+            i = idx//self.n_grid
+            k = idx%self.n_grid
+            self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
+            self.m_transforms_lvl0[idx] *= self.scaled_grid_size_km
+            self.m_transforms_lvl0[idx][1,1] = 1.0
+            self.m_transforms_lvl0[idx][1,1] *= ((self.dem_elev[i,k]+self.solid_lava_thickness[i,k])/self.km_to_m)
+            self.m_transforms_lvl0[idx][0,3] = i*self.scaled_grid_size_km
+            # self.m_transforms_lvl0[idx][1,3] = self.dem_elev[i,k]
+            self.m_transforms_lvl0[idx][2,3] = k*self.scaled_grid_size_km
+            self.m_transforms_lvl0[idx][3,3] = 1
+    
+    @ti.kernel
+    def initialize_m_transforms_lvl1(self):
+        for idx in self.m_transforms_lvl1:
+            i = idx//self.n_grid
+            k = idx%self.n_grid
+            self.m_transforms_lvl1[idx] = ti.Matrix.identity(float,4)
+            self.m_transforms_lvl1[idx] *= self.scaled_grid_size_km
+            self.m_transforms_lvl1[idx][0,3] = i*self.scaled_grid_size_km
+            self.m_transforms_lvl1[idx][1,3] = 654654654
+            self.m_transforms_lvl1[idx][2,3] = k*self.scaled_grid_size_km
+            self.m_transforms_lvl1[idx][3,3] = 1
 
     @ti.kernel
     def calculate_m_transforms_lvl0(self):
         for idx in self.m_transforms_lvl0:
             i = idx//self.n_grid
             k = idx%self.n_grid
-            self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-            self.m_transforms_lvl0[idx] *= self.grid_size_to_km
             self.m_transforms_lvl0[idx][1,1] = 1.0
-            self.m_transforms_lvl0[idx][1,1] *= self.dem_elev[i,k]/self.km_to_m
-            self.m_transforms_lvl0[idx][0,3] = i*self.grid_size_to_km
-            # self.m_transforms_lvl0[idx][1,3] = self.dem_elev[i,k]
-            self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_to_km
-            self.m_transforms_lvl0[idx][3,3] = 1
-
+            self.m_transforms_lvl0[idx][1,1] *= ((self.dem_elev[i,k]+self.solid_lava_thickness[i,k])/self.km_to_m)
+    
     @ti.kernel
     def calculate_m_transforms_lvl1(self):
         for idx in self.m_transforms_lvl1:
             i = idx//self.n_grid
             k = idx%self.n_grid
-            thickness = self.lava_thickness[i,k]
-            # if(i==200 and k==200 and thickness!=0.0):
-            #     print(f'i,k: 200,200 thickness: {thickness}')
-            self.m_transforms_lvl1[idx] = ti.Matrix.identity(float,4)
-            self.m_transforms_lvl1[idx] *= self.grid_size_to_km
-            self.m_transforms_lvl1[idx][1,1] = 1.0
-            self.m_transforms_lvl1[idx][1,1] *= thickness/self.km_to_m
-            self.m_transforms_lvl1[idx][0,3] = i*self.grid_size_to_km
-            self.m_transforms_lvl1[idx][2,3] = k*self.grid_size_to_km
-            self.m_transforms_lvl1[idx][3,3] = 1
-            if thickness > 0.01:
-                self.m_transforms_lvl1[idx][1,3] = self.dem_elev[i,k]/self.km_to_m
+            lava_thickness_m = self.lava_thickness[i,k]
+            if lava_thickness_m > self.rendering_lava_height_minimum_m:
+                self.m_transforms_lvl1[idx][1,1] = 1.0
+                self.m_transforms_lvl1[idx][1,1] *= (self.lava_thickness[i,k]/self.km_to_m)
+                self.m_transforms_lvl1[idx][1,3] = ((self.dem_elev[i,k]+self.solid_lava_thickness[i,k])/self.km_to_m)
             else:
-                self.m_transforms_lvl1[idx][1,3] = 0.0
+                self.m_transforms_lvl1[idx][1,3] = 654654654
     
     @ti.kernel
-    def calculate_m_transforms_lvl2(self,anchor_i: int,anchor_k: int):
-        for idx in self.m_transforms_lvl2:
-            i = int(idx//self.n_grid)
-            k = int(idx%self.n_grid)
-            if i==anchor_i and k==anchor_k:
-                # print(f'i: {i} k: {k}')
-                self.m_transforms_lvl2[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl2[idx] *= self.grid_size_to_km
-                self.m_transforms_lvl2[idx][1,1] = 1.0
-                self.m_transforms_lvl2[idx][1,1] *= (self.dem_elev[i,k]+self.lava_thickness[i,k]+100.0)/self.km_to_m
-                self.m_transforms_lvl2[idx][0,3] = i*self.grid_size_to_km
-                # self.m_transforms_lvl2[idx][1,3] = self.dem_elev[i,k]/self.km_to_m
-                self.m_transforms_lvl2[idx][2,3] = k*self.grid_size_to_km
-                self.m_transforms_lvl2[idx][3,3] = 1
+    def initialize_lava_cubes(self):
+        for i,k in self.lava_thickness:
+            # i = idx//self.n_grid
+            # k = idx%self.n_grid
+            idx = self.n_grid*i + k
+            # cube pos
+            pos_idx = 8*idx
+            self.cube_positions_lava[pos_idx+0] = ti.Vector([i*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+1] = ti.Vector([i*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+2] = ti.Vector([i*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+3] = ti.Vector([i*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+4] = ti.Vector([i*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+5] = ti.Vector([i*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+6] = ti.Vector([i*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km-self.scaled_grid_size_km/2.0])
+            self.cube_positions_lava[pos_idx+7] = ti.Vector([i*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0,0.0,k*self.scaled_grid_size_km+self.scaled_grid_size_km/2.0])
+            # cube indices
+            index_idx = 36*idx
+            self.cube_indices_lava[index_idx+0],self.cube_indices_lava[index_idx+1],self.cube_indices_lava[index_idx+2],self.cube_indices_lava[index_idx+3],self.cube_indices_lava[index_idx+4],self.cube_indices_lava[index_idx+5] = pos_idx+0,pos_idx+1,pos_idx+2,pos_idx+1,pos_idx+3,pos_idx+2
+            self.cube_indices_lava[index_idx+6],self.cube_indices_lava[index_idx+7],self.cube_indices_lava[index_idx+8],self.cube_indices_lava[index_idx+9],self.cube_indices_lava[index_idx+10],self.cube_indices_lava[index_idx+11] = pos_idx+0,pos_idx+4,pos_idx+5,pos_idx+0,pos_idx+5,pos_idx+1
+            self.cube_indices_lava[index_idx+12],self.cube_indices_lava[index_idx+13],self.cube_indices_lava[index_idx+14],self.cube_indices_lava[index_idx+15],self.cube_indices_lava[index_idx+16],self.cube_indices_lava[index_idx+17] = pos_idx+0,pos_idx+2,pos_idx+4,pos_idx+2,pos_idx+6,pos_idx+4
+            self.cube_indices_lava[index_idx+18],self.cube_indices_lava[index_idx+19],self.cube_indices_lava[index_idx+20],self.cube_indices_lava[index_idx+21],self.cube_indices_lava[index_idx+22],self.cube_indices_lava[index_idx+23] = pos_idx+2,pos_idx+7,pos_idx+6,pos_idx+2,pos_idx+3,pos_idx+7
+            self.cube_indices_lava[index_idx+24],self.cube_indices_lava[index_idx+25],self.cube_indices_lava[index_idx+26],self.cube_indices_lava[index_idx+27],self.cube_indices_lava[index_idx+28],self.cube_indices_lava[index_idx+29] = pos_idx+3,pos_idx+5,pos_idx+7,pos_idx+1,pos_idx+5,pos_idx+3
+            self.cube_indices_lava[index_idx+30],self.cube_indices_lava[index_idx+31],self.cube_indices_lava[index_idx+32],self.cube_indices_lava[index_idx+33],self.cube_indices_lava[index_idx+34],self.cube_indices_lava[index_idx+35] = pos_idx+4,pos_idx+6,pos_idx+5,pos_idx+5,pos_idx+6,pos_idx+7
+            # Color
+            self.cube_colors_lava[pos_idx+0] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+1] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+2] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+3] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+4] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+5] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+6] = ti.Vector([1.0,0.0,0.0,1.0])
+            self.cube_colors_lava[pos_idx+7] = ti.Vector([1.0,0.0,0.0,1.0])
+
+
+    @ti.kernel
+    def calculate_lava_height_and_color(self):
+        for i,k in self.lava_thickness:
+            # i = idx//self.n_grid
+            # k = idx%self.n_grid
+            idx = self.n_grid*i + k
+            pos_idx = 8*idx
+            lava_thickness_m = self.lava_thickness[i,k]
+            if lava_thickness_m > self.rendering_lava_height_minimum_m:
+                base_height = (self.dem_elev[i,k]+lava_thickness_m)/self.km_to_m
+                top_height = base_height + lava_thickness_m/self.km_to_m
+                # Height pos
+                self.cube_positions_lava[pos_idx+0].y = base_height
+                self.cube_positions_lava[pos_idx+1].y = base_height
+                self.cube_positions_lava[pos_idx+2].y = base_height
+                self.cube_positions_lava[pos_idx+3].y = base_height
+                self.cube_positions_lava[pos_idx+4].y = top_height
+                self.cube_positions_lava[pos_idx+5].y = top_height
+                self.cube_positions_lava[pos_idx+6].y = top_height
+                self.cube_positions_lava[pos_idx+7].y = top_height
+                # Color
+                heatNorm = (4) * (self.temperature[i,k] - self.solidification_temperature)/(self.extrusion_temperature - self.solidification_temperature)
+                # heatNormIdx = len(colors_lava-1) * heatNorm
+                heatColorLow = self.colors_lava[int(ti.floor(heatNorm))]
+                heatColorHigh = self.colors_lava[int(ti.ceil(heatNorm))]
+                
+                # heatVal = (heatNorm >= i/(len(colors_lava)-1)) & (heatNorm < (i+1)/(len(colors_lava)-1))
+                
+                color_temperature_ratio = (self.temperature[i,k]-self.solidification_temperature)/(self.extrusion_temperature-self.solidification_temperature)
+                color_temperature_ratio_2 = ti.math.sqrt(color_temperature_ratio)
+                color_temperature = color_temperature_ratio_2*color_lava_high + (1-color_temperature_ratio_2)*color_lava_low
+                color_temperature = ti.math.fract(heatNorm)*heatColorHigh + (1-ti.math.fract(heatNorm))*heatColorLow
+                self.cube_colors_lava[pos_idx+0] = color_temperature
+                self.cube_colors_lava[pos_idx+1] = color_temperature
+                self.cube_colors_lava[pos_idx+2] = color_temperature
+                self.cube_colors_lava[pos_idx+3] = color_temperature
+                self.cube_colors_lava[pos_idx+4] = color_temperature
+                self.cube_colors_lava[pos_idx+5] = color_temperature
+                self.cube_colors_lava[pos_idx+6] = color_temperature
+                self.cube_colors_lava[pos_idx+7] = color_temperature
             else:
-                self.m_transforms_lvl2[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl2[idx][2,3] = 654654654
-
-    @ti.kernel
-    def computeHeatRadiationLoss(self,global_delta_time: float):
-        for i,k in self.dem_elev:
-            delta_Q_t_m = 0.0
-            for n in ti.static(range(8)):
-                i_n,k_n = int(i+self.nRows[n]), int(k+self.nCols[n])
-                q_i = self.lava_flux[i,k,n]
-                if(q_i>0):
-                    delta_Q_t_m += q_i*self.temperature[i_n,k_n]
-                else:
-                    delta_Q_t_m += q_i*self.temperature[i,k]
-            rho = self.lava_density
-            c_v = self.c_v
-            delta_Q_t_m *= rho * c_v * global_delta_time
-            
-            epsilon = self.emissivity
-            A = self.cell_area
-            # Stefan–Boltzmann
-            sigma = 5.68 * 10**(-4)
-            cooling_accelerator_factor = self.cooling_accelerator_factor * 10.0**(2)
-            delta_Q_t_r = epsilon * A * sigma * self.temperature[i,k]**4 * global_delta_time * cooling_accelerator_factor
-
-            self.heat_quantity[i,k] += delta_Q_t_m - delta_Q_t_r
-            # self.heat_quantity[i,k] += delta_Q_t_m
-            # if(i==215 and k==215):
-            #     print(f'self.heat_quantity[i,k]: {self.heat_quantity[i,k]} delta_Q_t_m: {delta_Q_t_m} delta_Q_t_r: {delta_Q_t_r}')
-
-    @ti.kernel
-    def updateTemperature(self):
-        for i,k in self.temperature:
-            if(self.heat_quantity[i,k]>0):
-                rho = self.lava_density
-                c_v = self.c_v
-                h_t_dt = self.lava_thickness[i,k]
-                A = self.cell_area
-                self.temperature[i,k] = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
-            else:
-                self.heat_quantity[i,k] = 0.0
-            # if(i==215 and k==215):
-            #     print(f'self.temperature[i,k]: {self.temperature[i,k]}')
-
-    @ti.kernel
-    def computeNewLavaThickness(self,global_delta_time: float):
-        for i,k in self.dem_elev:
-            q_tot = 0.0
-            for n in ti.static(range(8)):
-                q_tot += self.lava_flux[i,k,n]
-            delta_lava_thickness = q_tot*global_delta_time/self.cell_area
-            self.lava_thickness[i,k] += delta_lava_thickness
-            if(ti.math.isnan(delta_lava_thickness)):
-                print(f'i: {i} k: {k} q_tot:{q_tot} delta_lava_thickness: {delta_lava_thickness} self.delta_time[i,k]: {self.delta_time[i,k]} self.global_delta_time: {self.global_delta_time} global_delta_time: {global_delta_time} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
-                print(f'i: {i} k: {k} self.lava_flux[i,k,0]: {self.lava_flux[i,k,0]} self.lava_flux[i,k,1]: {self.lava_flux[i,k,1]} self.lava_flux[i,k,2]: {self.lava_flux[i,k,2]} self.lava_flux[i,k,3]: {self.lava_flux[i,k,3]} self.lava_flux[i,k,4]: {self.lava_flux[i,k,4]} self.lava_flux[i,k,5]: {self.lava_flux[i,k,5]} self.lava_flux[i,k,6]: {self.lava_flux[i,k,6]} self.lava_flux[i,k,7]: {self.lava_flux[i,k,7]}')
-    
-    @ti.kernel
-    def computeTimeSteps(self):
-        for i,k in self.dem_elev:
-            c = self.delta_time_c
-            h = self.lava_thickness[i,k]
-            A = self.cell_area
-            q_tot = 0.0
-            for n in ti.static(range(8)):
-                q_tot += self.lava_flux[i,k,n]
-            self.delta_time[i,k] = 9999.9
-            if q_tot<0:
-                self.delta_time[i,k] = c*h*A/ti.abs(q_tot)
-    
-    @ti.kernel
-    def computeGlobalTimeStep(self) -> ti.f32:
-        global_delta_time = 9999999.9
-        for i,k in self.dem_elev:
-            ti.atomic_min(global_delta_time, self.delta_time[i,k])
-        return global_delta_time
+                # Height pos
+                self.cube_positions_lava[pos_idx+0].y = 654654654
+                self.cube_positions_lava[pos_idx+1].y = 654654654
+                self.cube_positions_lava[pos_idx+2].y = 654654654
+                self.cube_positions_lava[pos_idx+3].y = 654654654
+                self.cube_positions_lava[pos_idx+4].y = 654654654
+                self.cube_positions_lava[pos_idx+5].y = 654654654
+                self.cube_positions_lava[pos_idx+6].y = 654654654
+                self.cube_positions_lava[pos_idx+7].y = 654654654
 
     @ti.kernel
     def computeFluxTransfers(self):
@@ -399,7 +342,7 @@ class Grid:
                     delta_x_sign = 1
                 
                 # if (h<=0):
-                if (h<=0 or ti.abs(delta_z+delta_h) < 1e-3):
+                if (h<=self.flux_height_minimum_m or ti.abs(delta_z+delta_h) < self.delta_total_height_minimum_m):
                     self.lava_flux[i,k,n] = 0.0
                 else:
                     rho = self.lava_density
@@ -411,52 +354,156 @@ class Grid:
                     a = h/h_cr
                     if(h>h_cr):
                         q = (S_y * h_cr**2 * delta_x)/(3.0*eta) * (a**3 - 3.0/2.0*a**2 + 1.0/2.0)
-                        if(ti.math.isinf(q)):
-                            print(f'i,k: {i},{k} i_n,k_n: {i_n},{k_n} S_y: {S_y} h: {h} h_cr: {h_cr} eta: {eta} a: {a}')
+                        # print(f'q: {q}')
+                        if(ti.math.isinf(q) or ti.math.isnan(q)):
+                            print(f'i,k: {i},{k} i_n,k_n: {i_n},{k_n} S_y: {S_y} T: {T} h: {h} h_cr: {h_cr} eta: {eta} a: {a}')
                         self.lava_flux[i,k,n] = q
                         # print(f'h_cr: {h_cr} h: {h} delta_x: {delta_x} delta_h: {delta_h} a: {a} q: {q} i: {i} k: {k} i_n: {i_n} k_n: {k_n}')
                     else:
                         self.lava_flux[i,k,n] = 0.0
     
     @ti.kernel
-    def pulse(self):
+    def computeTimeSteps(self):
         for i,k in self.dem_elev:
-            if(self.is_active[i,k]==1 and self.lava_thickness[i,k] < self.max_lava_thickness):
+            c = self.delta_time_c
+            h = self.lava_thickness[i,k]
+            A = self.cell_area_m
+            q_tot = 0.0
+            for n in ti.static(range(8)):
+                q_tot += self.lava_flux[i,k,n]
+            self.delta_time[i,k] = self.global_delta_time_maximum_s
+            if q_tot<0:
+                self.delta_time[i,k] = c*h*A/ti.abs(q_tot)
+    
+    @ti.kernel
+    def computeGlobalTimeStep(self) -> ti.f32:
+        global_delta_time = self.global_delta_time_maximum_s
+        for i,k in self.dem_elev:
+            ti.atomic_min(global_delta_time, self.delta_time[i,k])
+        return global_delta_time
+    
+    @ti.kernel
+    def computeNewLavaThickness(self,global_delta_time: float):
+        for i,k in self.dem_elev:
+            q_tot = 0.0
+            for n in ti.static(range(8)):
+                q_tot += self.lava_flux[i,k,n]
+            delta_lava_thickness = q_tot*global_delta_time/self.cell_area_m
+            self.lava_thickness[i,k] += delta_lava_thickness
+            if(self.lava_thickness[i,k]<0):
+                self.lava_thickness[i,k] = 0.0
+            if(ti.math.isnan(delta_lava_thickness)):
+                print(f'i: {i} k: {k} q_tot:{q_tot} delta_lava_thickness: {delta_lava_thickness} self.delta_time[i,k]: {self.delta_time[i,k]} self.global_delta_time: {self.global_delta_time} global_delta_time: {global_delta_time} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
+                print(f'i: {i} k: {k} self.lava_flux[i,k,0]: {self.lava_flux[i,k,0]} self.lava_flux[i,k,1]: {self.lava_flux[i,k,1]} self.lava_flux[i,k,2]: {self.lava_flux[i,k,2]} self.lava_flux[i,k,3]: {self.lava_flux[i,k,3]} self.lava_flux[i,k,4]: {self.lava_flux[i,k,4]} self.lava_flux[i,k,5]: {self.lava_flux[i,k,5]} self.lava_flux[i,k,6]: {self.lava_flux[i,k,6]} self.lava_flux[i,k,7]: {self.lava_flux[i,k,7]}')
+    
+    @ti.kernel
+    def computeHeatRadiationLoss(self,global_delta_time: float):
+        for i,k in self.dem_elev:
+            delta_Q_t_m = 0.0
+            for n in ti.static(range(8)):
+                i_n,k_n = int(i+self.nRows[n]), int(k+self.nCols[n])
+                q_i = self.lava_flux[i,k,n]
+                if(q_i>0):
+                    delta_Q_t_m += q_i*self.temperature[i_n,k_n]
+                else:
+                    delta_Q_t_m += q_i*self.temperature[i,k]
+            rho = self.lava_density
+            c_v = self.c_v
+            delta_Q_t_m *= rho * c_v * global_delta_time
+            
+            epsilon = self.emissivity
+            A = self.cell_area_m
+            # Stefan–Boltzmann
+            sigma = self.stefan_boltzmann_constant
+            cooling_accelerator_factor = self.cooling_accelerator_factor # * 10.0**(2)
+            # print(f'cooling_accelerator_factor: {cooling_accelerator_factor}')
+            delta_Q_t_r = 0.0
+            if self.lava_thickness[i,k] > 0.0:
+                delta_Q_t_r = epsilon * A * sigma * self.temperature[i,k]**4 * global_delta_time * cooling_accelerator_factor
+
+            self.heat_quantity[i,k] += delta_Q_t_m - delta_Q_t_r
+            # self.heat_quantity[i,k] += delta_Q_t_m
+            # if(i==215 and k==215):
+            #     print(f'self.heat_quantity[i,k]: {self.heat_quantity[i,k]} delta_Q_t_m: {delta_Q_t_m} delta_Q_t_r: {delta_Q_t_r}')
+    
+    @ti.kernel
+    def computeLavaSolidification(self,global_delta_time: float):
+        for i,k in self.temperature:
+            if (self.temperature[i,k] < self.solidification_temperature):
+                epsilon = self.emissivity
+                sigma = self.stefan_boltzmann_constant
+                cooling_accelerator_factor = self.cooling_accelerator_factor * 10.0**(2)
+                rho = self.lava_density
+                c_v = self.c_v
+                new_solid_lava = (epsilon * sigma * self.temperature[i,k]**3 * global_delta_time * cooling_accelerator_factor) / (rho * c_v)
+                if(self.lava_thickness[i,k] > new_solid_lava):
+                    self.solid_lava_thickness[i,k] += new_solid_lava
+                    self.lava_thickness[i,k] -= new_solid_lava
+                else:
+                    self.solid_lava_thickness[i,k] += self.lava_thickness[i,k]
+                    self.lava_thickness[i,k] = 0.0
+    
+    @ti.kernel
+    def updateTemperature(self):
+        for i,k in self.temperature:
+            if(self.heat_quantity[i,k]>0 and self.lava_thickness[i,k] > self.update_temperature_lava_height_minimum_m):
+                rho = self.lava_density
+                c_v = self.c_v
+                h_t_dt = self.lava_thickness[i,k]
+                A = self.cell_area_m
+                curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
+                self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
+                # self.temperature[i,k] = curr_temperature
+            # else:
+            #     self.temperature[i,k] = 0.0
+            #     self.heat_quantity[i,k] = 0.0
+            # if(i==215 and k==215):
+            #     print(f'self.temperature[i,k]: {self.temperature[i,k]}')
+
+        
+    
+    @ti.kernel
+    def pulse(self, global_delta_time: float):
+        for i,k in self.dem_elev:
+            if(self.is_active[i,k]>0 and self.lava_thickness[i,k] < self.max_lava_thickness):
                 pulsevolume = self.pulse_volume[i,k]
-                pulsevolume *= self.km_to_m**3
-                pulseThickness = pulsevolume / self.cell_area
+                pulsevolume *= self.km_to_m**3*global_delta_time
+                pulseThickness = pulsevolume / self.cell_area_m
                 new_lava_thickness = self.lava_thickness[i,k] + pulseThickness
                 if (new_lava_thickness > self.max_lava_thickness):
                     pulseThickness = self.max_lava_thickness - self.lava_thickness[i,k]
-                    pulsevolume = pulseThickness * self.cell_area
+                    pulsevolume = pulseThickness * self.cell_area_m
                 self.lava_thickness[i,k] += pulseThickness
-                self.is_active[i,k] = 0
+                self.is_active[i,k] -= 1
                 self.pulse_volume[i,k] = 0.0
                 if(pulseThickness>0):
+                    # print(f'i,k: {i,k} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
                     rho = self.lava_density
                     c_v = self.c_v
-                    A = self.cell_area
+                    A = self.cell_area_m
                     h_t_dt = self.lava_thickness[i,k]
                     self.heat_quantity[i,k] += pulseThickness*A*self.extrusion_temperature*rho*c_v
-                    self.temperature[i,k] = self.heat_quantity[i,k]/(rho*c_v*h_t_dt*A)
-            elif(self.is_active[i,k]==-1):
+                    curr_temperature = self.heat_quantity[i,k]/(rho*c_v*h_t_dt*A)
+                    self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
+            elif(self.is_active[i,k]<0 and self.lava_thickness[i,k] > 0.0):
                 pulsevolume = self.pulse_volume[i,k]
                 pulsevolume *= self.km_to_m**3
-                pulseThickness = pulsevolume / self.cell_area
+                pulseThickness = pulsevolume / self.cell_area_m
                 new_lava_thickness = self.lava_thickness[i,k] - pulseThickness
                 if (new_lava_thickness < 0):
                     pulseThickness = self.lava_thickness[i,k]
-                    pulsevolume = pulseThickness * self.cell_area
+                    pulsevolume = pulseThickness * self.cell_area_m
                 self.lava_thickness[i,k] -= pulseThickness
-                self.is_active[i,k] = 0
+                self.is_active[i,k] += 1
                 self.pulse_volume[i,k] = 0.0
                 if(pulseThickness>0):
                     rho = self.lava_density
                     c_v = self.c_v
-                    A = self.cell_area
+                    A = self.cell_area_m
                     h_t_dt = self.lava_thickness[i,k]
                     self.heat_quantity[i,k] -= pulseThickness*A*self.extrusion_temperature*rho*c_v
-                    self.temperature[i,k] = self.heat_quantity[i,k]/(rho*c_v*h_t_dt*A)
+                    curr_temperature = self.heat_quantity[i,k]/(rho*c_v*h_t_dt*A)
+                    self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
 
 
     def bboxIntersect(self,rayPosition,rayDirection):
@@ -526,7 +573,7 @@ class Grid:
 
     def Intersect(self,rayPosition,rayDirection):
         rayPosList = [rayPosition[0],rayPosition[2]]
-        rayPositionGrid = np.array(rayPosList)/self.grid_size_to_km
+        rayPositionGrid = np.array(rayPosList)/self.scaled_grid_size_km
         rayDirGridList = [rayDirection[0],rayDirection[2]]
         rayDirectionGrid = np.array(rayDirGridList)
         # print(f'rayPositionGrid: {rayPositionGrid} rayDirectionGrid: {rayDirectionGrid}')
@@ -541,19 +588,19 @@ class Grid:
             
             while (t < tb):
                 #  Point along the ray
-                p = rayPosition/self.grid_size_to_km + t*rayDirection
+                p = rayPosition/self.scaled_grid_size_km + t*rayDirection
                 # print(f'p_curr: {p} p[1]*self.km_to_m: {p[1]*self.km_to_m}')
                 h = self.dem_elev[int(p[0]),int(p[2])] + self.lava_thickness[int(p[0]),int(p[2])] + self.solid_lava_thickness[int(p[0]),int(p[2])]
                 # print(f'curr_p: {p} h: {h} p[1]*self.grid_size_to_km*self.km_to_m: {p[1]*self.grid_size_to_km*self.km_to_m}')
-                pos_height_meters = p[1]*self.grid_size_to_km*self.km_to_m
+                pos_height_meters = p[1]*self.scaled_grid_size_km*self.km_to_m
                 if (h > pos_height_meters):
-                    p[1] = h/(self.grid_size_to_km*self.km_to_m)
+                    p[1] = h/(self.scaled_grid_size_km*self.km_to_m)
                     # # print(f'p[0]: {p[0]} p[2]: {p[2]} h: {h} p[1]*self.km_to_m: {p[1]*self.km_to_m} p: {p}')
                     # if(pos_height_meters>0.0):
                     #     return True,p*self.grid_size_to_km
                     # else:
                     #     p[1] = h/(self.grid_size_to_km*self.km_to_m)
-                    return True,p*self.grid_size_to_km
+                    return True,p*self.scaled_grid_size_km
                 else:
                     t += 1.0
             

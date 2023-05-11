@@ -9,7 +9,8 @@ class Heightmap:
         # Size of heightmap that will define size of cube
         self.hm_height_px, self.hm_width_px = hm_im.shape
         # Conversion heightmap pixel to km => 1 km == 10.8 px
-        self.px_to_km = 1.0/10.8
+        # self.px_to_km = 1.0/10.8
+        self.px_to_km = 1.0/200.0
         self.hm_max_value = 65535.0
         self.hm_elev_min_km = hm_elev_min_m/1000.0
         self.hm_elev_max_km = hm_elev_max_m/1000.0

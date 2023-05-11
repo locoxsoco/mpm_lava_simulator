@@ -26,11 +26,17 @@ class Brush(Enum):
     HEAT = 2
     COOL = 3
 
+class GridLava(Enum):
+    LAVA = 0
+    HEATMAP = 1
+
 
 normal_line_column = 0
 debug_normals_checkbox = 0
 debug_grid_dem_checkbox = 1
-debug_grid_lava_checkbox = 1
+debug_grid_lava_checkbox = 0
+debug_grid_lava_heatmap_checkbox = 1
+debug_grid_lava_type = GridLava.HEATMAP
 debug_mesh_checkbox = 0
 dem_checkbox = 1
 lava_checkbox = 0
@@ -38,6 +44,7 @@ heat_checkbox = 0
 brush_type = Brush.DEM
 run_state = 0
 pulse_state = 0
+global_delta_time = 0.1
 #######################################################################
 
 def show_options(gui,pulseVolume,grid,simulation_time):
@@ -45,6 +52,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global debug_normals_checkbox
     global debug_grid_dem_checkbox
     global debug_grid_lava_checkbox
+    global debug_grid_lava_heatmap_checkbox
     global debug_mesh_checkbox
     global dem_checkbox
     global lava_checkbox
@@ -54,13 +62,22 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global pulse_state
     global particle_radius
     global brush_type
+    global debug_grid_lava_type
 
-    with gui.sub_window("Debug", 0.0, 0.82, 0.14, 0.145) as w:
+    with gui.sub_window("Debug", 0.0, 0.75, 0.14, 0.18) as w:
         debug_normals_checkbox = w.checkbox("Show normals", debug_normals_checkbox)
         normal_line_column = w.slider_int("Column", normal_line_column, 0, 100)
         debug_grid_dem_checkbox = w.checkbox("Show grid dem", debug_grid_dem_checkbox)
         debug_grid_lava_checkbox = w.checkbox("Show grid lava", debug_grid_lava_checkbox)
+        debug_grid_lava_heatmap_checkbox = w.checkbox("Show grid lava heatmap", debug_grid_lava_heatmap_checkbox)
         debug_mesh_checkbox = w.checkbox("Show mesh", debug_mesh_checkbox)
+
+        if(debug_grid_lava_checkbox and debug_grid_lava_type != GridLava.LAVA):
+            debug_grid_lava_type = GridLava.LAVA
+            debug_grid_lava_heatmap_checkbox = 0
+        elif(debug_grid_lava_heatmap_checkbox and debug_grid_lava_type != GridLava.HEATMAP):
+            debug_grid_lava_type = GridLava.HEATMAP
+            debug_grid_lava_checkbox = 0
     
     run_state_text = 'Running' if run_state else 'Paused'
     with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.185) as w:
@@ -109,13 +126,14 @@ def render(camera,window,scene,canvas,heightmap,grid):
     scene.set_camera(camera)
 
     if(debug_mesh_checkbox):
-        scene.mesh(vertices=heightmap.heightmap_positions, indices=heightmap.heightmap_indices,per_vertex_color=heightmap.heightmap_colors,normals=heightmap.heightmap_normals)
+        scene.mesh(vertices=heightmap.heightmap_positions, indices=heightmap.heightmap_indices,per_vertex_color=heightmap.heightmap_colors)
     if(debug_grid_dem_checkbox):
-        scene.mesh_instance(vertices=grid.cube_positions, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl0, transforms=grid.m_transforms_lvl0)
+        scene.mesh_instance(vertices=grid.cube_positions_dem, indices=grid.cube_indices,color=(54.0/256.0, 47.0/256.0, 54.0/256.0), transforms=grid.m_transforms_lvl0)
     if(debug_grid_lava_checkbox):
-        scene.mesh_instance(vertices=grid.cube_positions2, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl1, transforms=grid.m_transforms_lvl1)
-    # scene.mesh_instance(vertices=grid.cube_positions3, indices=grid.cube_indices,per_vertex_color=grid.cube_colors_lvl2, transforms=grid.m_transforms_lvl2)
-    scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius/2.0)
+        scene.mesh_instance(vertices=grid.cube_positions_lava1, indices=grid.cube_indices,color=(256.0/256.0, 0.0/256.0, 0.0/256.0), transforms=grid.m_transforms_lvl1)
+    elif(debug_grid_lava_heatmap_checkbox):
+        scene.mesh_instance(vertices=grid.cube_positions_lava, indices=grid.cube_indices_lava,per_vertex_color=grid.cube_colors_lava)
+    scene.particles(particles_pos, per_vertex_color = particle_color_ti, radius = particle_radius*grid.grid_size_km_to_scaled_grid_size_km/2.0)
     if(debug_normals_checkbox):
         for i in range(45):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
@@ -131,6 +149,7 @@ def main():
     global pulse_state
     global is_particles_outside
     global particle_color_ti
+    global global_delta_time
     
     parser = argparse.ArgumentParser(description='Lava Sim Taichi')
     parser.add_argument('--scene_file',
@@ -163,10 +182,10 @@ def main():
     gui = window.GUI
     scene = ti.ui.Scene()
     camera = ti.ui.Camera()
-    camera.position(0.0, heightmap.hm_elev_range_km, 0.0)
-    camera.lookat(heightmap.hm_width_px*heightmap.px_to_km/2.0, 0.0, heightmap.hm_height_px*heightmap.px_to_km/2.0)
+    camera.position(0.0, heightmap.hm_elev_range_km*grid.grid_size_km_to_scaled_grid_size_km, 0.0)
+    camera.lookat(grid.scaled_grid_size_km*grid.n_grid/2.0, heightmap.hm_elev_range_km*grid.grid_size_km_to_scaled_grid_size_km, grid.scaled_grid_size_km*grid.n_grid/2.0)
     camera.fov(55)
-    substeps = 1
+    substeps = 5
     simulation_time = 0.0
     while window.running:
         if(simulation_method == 'MAGFLOW'):
@@ -179,8 +198,8 @@ def main():
                 rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1, window.get_window_shape())
                 # print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
-                if(window.is_pressed(ti.ui.LMB)):
-                    ti_vector_pos_grid = ti_vector_pos/grid.grid_size_to_km
+                if(window.is_pressed(ti.ui.LMB) and validAnchor):
+                    ti_vector_pos_grid = ti_vector_pos/grid.scaled_grid_size_km
                     # print(f'i,k: {int(ti_vector_pos_grid[0])},{int(ti_vector_pos_grid[2])} lava thickness: {solver.Grid.lava_thickness[int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2])]}')
                     # print(f'i,k: {200},{200} lava thickness: {solver.Grid.lava_thickness[200,200]}')
                     # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
@@ -189,12 +208,15 @@ def main():
                             solver.remove_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
                         else:
                             solver.add_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
-                        solver.Grid.calculate_m_transforms_lvl0()
+                        if(debug_grid_dem_checkbox):
+                            solver.Grid.calculate_m_transforms_lvl0()
                     elif (brush_type == Brush.LAVA):
                         if window.is_pressed(ti.ui.SHIFT):
-                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,-1)
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,-substeps)
                         else:
-                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,1)
+                            # print('aaaaaaaa')
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,substeps)
+                            # print('bbbbbbbbbb')
                     elif (brush_type == Brush.HEAT):
                         if window.is_pressed(ti.ui.SHIFT):
                             solver.remove_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
@@ -220,11 +242,20 @@ def main():
             if(simulation_method == 'MOLASSES'):
                 solver.pulse()
             elif(simulation_method == 'MAGFLOW'):
-                solver.set_active_pulses(200,200,0.1,1)
+                solver.set_active_pulses_file(simulation_time,substeps)
         # 1. Compute volumetrix lava flux for cell vents
-        solver.Grid.pulse()
+        # print('ccccccccccc')
+        solver.Grid.pulse(global_delta_time)
+        # print('dddddddddd')
+        # solver.Grid.updateTemperature()
+        # print('eeeeeeeeeeeee')
         # print(f'[PULSE] {time.time()-ini_pulse_time}')
-        solver.Grid.calculate_m_transforms_lvl1()
+        if(debug_grid_lava_checkbox):
+            solver.Grid.calculate_m_transforms_lvl1()
+            solver.Grid.calculate_lava_height_and_color()
+        elif(debug_grid_lava_heatmap_checkbox):
+            solver.Grid.calculate_lava_height_and_color()
+        # print('ffffffffffffffffff')
         if(run_state == 1 or run_state == 2):
             if(simulation_method == 'MOLASSES'):
                 solver.Grid.distribute()
@@ -232,14 +263,18 @@ def main():
                 for i in range(substeps):
                     # 2. Compute flux transfer with neighbouring cells
                     # ini_flux_time = time.time()
+                    # print('gggggggggg')
                     solver.Grid.computeFluxTransfers()
+                    # print('hhhhhhhhhhhh')
                     # print(f'[FLUX] {time.time()-ini_flux_time}')
                     # 3. Computer the maximum allowed time-step
                     # ini_dt_time = time.time()
                     solver.Grid.computeTimeSteps()
+                    # print('iiiiiiiiiiiiiii')
                     # print(f'[TIMESTEP] {time.time()-ini_dt_time}')
                     # ini_global_time = time.time()
                     global_delta_time = solver.Grid.computeGlobalTimeStep()
+                    # print('jjjjjjjjjjjj')
                     solver.Grid.global_delta_time = global_delta_time
                     simulation_time += global_delta_time
                     # print(f'[GLOBAL] {time.time()-ini_global_time}')
@@ -248,14 +283,25 @@ def main():
                     # 4.1 Compute the new lava thickness
                     # ini_lavah_time = time.time()
                     solver.Grid.computeNewLavaThickness(global_delta_time)
+                    # print('kkkkkkkkkkkkk')
                     # print(f'[NEWLAVAH] {time.time()-ini_lavah_time}')
                     # solver.Grid.updateLavaThickness()
                     # 4.2 Compute the heat radiation loss
                     solver.Grid.computeHeatRadiationLoss(global_delta_time)
-                    solver.Grid.updateTemperature()
+                    # print('lllllllllll')
                     # 4.3 Transfer an appropriate amount of lava thickness to the solid lava thickness if there is solidification
-                    # solver.Grid.computeLavaSolidification()
-            solver.Grid.calculate_m_transforms_lvl1()
+                    solver.Grid.computeLavaSolidification(global_delta_time)
+                    # print('mmmmmmmmmmmmmm')
+                    solver.Grid.updateTemperature()
+                    # print('nnnnnnnnnnnnnnnn')
+            if(debug_grid_lava_checkbox):
+                solver.Grid.calculate_m_transforms_lvl1()
+                solver.Grid.calculate_lava_height_and_color()
+            elif(debug_grid_lava_heatmap_checkbox):
+                solver.Grid.calculate_lava_height_and_color()
+            if(debug_grid_dem_checkbox):
+                solver.Grid.calculate_m_transforms_lvl0()
+            # print('oooooooooooooo')
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid)

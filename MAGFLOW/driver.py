@@ -1,11 +1,18 @@
 import math
 import numpy as np
+import scipy.stats as st
 from MAGFLOW.initialize import initialize, Vent
 from MAGFLOW.magflow_input_file import configureParams
 from MAGFLOW.heightmap import Heightmap
 from MAGFLOW.grid import Grid
+from enum import Enum
 
 np.random.seed(42)
+
+class PulseFileStatus(Enum):
+    INACTIVE = 0
+    ACTIVE = 1
+    END = 2
 
 def gennor(av,sd):
     return sd*np.random.normal() + av
@@ -15,6 +22,14 @@ def genunf(low,high):
 
 def cubicSmooth(x,r):
     return (1.0-x/r)*(1.0-x/r)*(1.0-x/r)
+
+def gkern(kernlen=5, nsig=2.5):
+    """Returns a 2D Gaussian kernel."""
+
+    x = np.linspace(-nsig, nsig, kernlen+1)
+    kern1d = np.diff(st.norm.cdf(x))
+    kern2d = np.outer(kern1d, kern1d)
+    return kern2d/kern2d.sum()
 
 class ActiveList:
     def __init__(self):
@@ -38,6 +53,22 @@ class Driver:
         self.current_vent = -1
         self.pulseCount = 0
         self.ActiveCounter = 0
+
+        # Read pulse txt file
+        self.pulse_file_init_time = [0.0,100.0,300.0,400.0,500.0]
+        self.pulse_file_end_time = [100.0,200.0,400.0,500.0,1000000.0]
+        weak_pulse = 0.005*0.005*0.005
+        normal_pulse = 0.005*0.005*0.01
+        strong_pulse = 0.005*0.005*1.0
+        self.pulse_file_volume_km3_per_s = [normal_pulse,normal_pulse,normal_pulse,weak_pulse,strong_pulse]
+        self.pulse_file_radius = [1,2,4,6,8]
+        self.pulse_file_vent_x = [200,200,200,200,200]
+        self.pulse_file_vent_y = [200,200,200,200,200]
+        self.pulse_file_len = 5
+        self.pulse_file_index = 0
+        self.pulse_file_status = PulseFileStatus.INACTIVE
+        # Generate Gaussian filters
+        self.pulse_file_gaussian_filters = [gkern(1*2+1),gkern(2*2+1),gkern(4*2+1),gkern(6*2+1),gkern(8*2+1)]
 
         self.n_steps = 0
         self.time = 0.0
@@ -94,7 +125,8 @@ class Driver:
         return local_CAList
 
     def set_active_pulses(self,center_x,center_y,radius,active_value: int):
-        height = 0.0001
+        # height = 0.0001
+        pulse_km3_per_s = 0.005*0.005*0.01
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -106,7 +138,38 @@ class Driver:
                 u = (center_x-x)**2 + (center_y-y)**2
                 if(u<radius_grid*radius_grid):
                     self.Grid.is_active[x,y] = active_value
-                    self.Grid.pulse_volume[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
+                    self.Grid.pulse_volume[x,y] += pulse_km3_per_s * cubicSmooth(u,radius_grid*radius_grid)
+    
+    def set_active_pulses_gaussian_kernel(self,center_x,center_y,radius,active_value: int):
+        # height = 0.0001
+        pulse_km3_per_s = 0.005*0.005*0.01
+        bbox_min_x = center_x - radius
+        bbox_min_y = center_y - radius
+        bbox_max_x = center_x + radius
+        bbox_max_y = center_y + radius
+
+        for index_y, y in enumerate(range(bbox_min_y,bbox_max_y),start=0):
+            for index_x, x in enumerate(range(bbox_min_x,bbox_max_x),start=0):
+                self.Grid.is_active[x,y] = active_value
+                # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
+                self.Grid.pulse_volume[x,y] += pulse_km3_per_s * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
+    
+    def set_active_pulses_file(self,simulation_time,substeps):
+        # height = 0.0001
+        # print('aaaa')
+        if(self.pulse_file_status != PulseFileStatus.END):
+            # print('bbbb')
+            if(simulation_time >= self.pulse_file_end_time[self.pulse_file_index]):
+                self.pulse_file_index += 1
+                if(self.pulse_file_index >= self.pulse_file_len):
+                    self.pulse_file_status = PulseFileStatus.END
+                else:
+                    self.pulse_file_status = PulseFileStatus.INACTIVE
+            if(simulation_time >= self.pulse_file_init_time[self.pulse_file_index]):
+                if(self.pulse_file_status == PulseFileStatus.INACTIVE):
+                    self.pulse_file_status = PulseFileStatus.ACTIVE
+            if(self.pulse_file_status == PulseFileStatus.ACTIVE):
+                self.set_active_pulses_gaussian_kernel(self.pulse_file_vent_x[self.pulse_file_index],self.pulse_file_vent_y[self.pulse_file_index],self.pulse_file_radius[self.pulse_file_index],substeps)
         
     def add_dem(self,center_x,center_y,radius):
         height = 10.0
@@ -137,7 +200,7 @@ class Driver:
                     self.Grid.dem_elev[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
     
     def add_heat(self,center_x,center_y,radius):
-        height = 10.0
+        height = 10e12
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -147,11 +210,11 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > 0.0001):
                     self.Grid.heat_quantity[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
     
     def remove_heat(self,center_x,center_y,radius):
-        height = 10.0
+        height = 10e12
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -161,5 +224,9 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > 0.0001):
+                    # print(f'before self.Grid.heat_quantity[x,y]: {self.Grid.heat_quantity[x,y]}')
                     self.Grid.heat_quantity[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
+                    if(self.Grid.heat_quantity[x,y] < 0.0):
+                        self.Grid.heat_quantity[x,y] = 0.0
+                    # print(f'after self.Grid.heat_quantity[x,y]: {self.Grid.heat_quantity[x,y]}')
