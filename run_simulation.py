@@ -41,7 +41,7 @@ debug_mesh_checkbox = 0
 dem_checkbox = 1
 lava_checkbox = 0
 heat_checkbox = 0
-brush_strength = 1
+brush_strength = 5
 brush_type = Brush.DEM
 run_state = 0
 pulse_state = 0
@@ -82,7 +82,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             debug_grid_lava_checkbox = 0
     
     run_state_text = 'Running' if run_state else 'Paused'
-    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.27, 0.185) as w:
+    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.27, 0.16) as w:
         # w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
         w.text(f'Simulation time: {simulation_time} s')
         if w.button("Run"):
@@ -91,13 +91,13 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             run_state = 0
         if w.button("Step"):
             run_state = 2
-        pulseVolume = w.slider_float("Volume per pulse (km3)", pulseVolume, 0.0, 0.001)
+        # pulseVolume = w.slider_float("Volume per pulse (km3)", pulseVolume, 0.0, 0.001)
         if w.button("Emit Pulse"):
             pulse_state = 1
         if w.button("Pause Pulse"):
             pulse_state = 0
     
-    with gui.sub_window(f'Lava Properties', 0.0, 0.185, 0.27, 0.185) as w:
+    with gui.sub_window(f'Lava Properties', 0.0, 0.16, 0.27, 0.185) as w:
         grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 1000.0, 10000.0)
         grid.specific_heat_capacity = w.slider_float("Heat Capacity (J/Kg K)", grid.specific_heat_capacity, 800.0, 1600.0)
         grid.emissivity = w.slider_float("Lava emissivity", grid.emissivity, 0.0, 1.0)
@@ -107,12 +107,12 @@ def show_options(gui,pulseVolume,grid,simulation_time):
         grid.cooling_accelerator_factor = w.slider_float("Cooling Factor", grid.cooling_accelerator_factor, 1.0 , 1000.0)
 
     # customPulseVolume = 0.0
-    with gui.sub_window(f'Brush (Ctrl to add, Ctrl+Shift to remove)', 0.0, 0.37, 0.165, 0.145) as w:
+    with gui.sub_window(f'Brush (Ctrl to add, Ctrl+Shift to remove)', 0.0, 0.345, 0.165, 0.145) as w:
         dem_checkbox = w.checkbox("DEM", dem_checkbox)
         lava_checkbox = w.checkbox("Lava", lava_checkbox)
         heat_checkbox = w.checkbox("Heat", heat_checkbox)
         brush_strength = w.slider_float("Strength", brush_strength, 1.0, 10.0)
-        particle_radius = w.slider_float("Size (km)", particle_radius, 0.1, 1)
+        particle_radius = w.slider_float("Size (km)", particle_radius, grid.grid_size_km_to_scaled_grid_size_km*2, grid.grid_size_km_to_scaled_grid_size_km*20)
 
         if(dem_checkbox and brush_type != Brush.DEM):
             brush_type = Brush.DEM
@@ -158,6 +158,7 @@ def main():
     global is_particles_outside
     global particle_color_ti
     global global_delta_time
+    global brush_strength
     
     parser = argparse.ArgumentParser(description='Lava Sim Taichi')
     parser.add_argument('--scene_file',
@@ -213,23 +214,23 @@ def main():
                     # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
                     if (brush_type == Brush.DEM):
                         if window.is_pressed(ti.ui.SHIFT):
-                            solver.remove_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                            solver.remove_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,brush_strength)
                         else:
-                            solver.add_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                            solver.add_dem(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,brush_strength)
                         if(debug_grid_dem_checkbox):
                             solver.Grid.calculate_m_transforms_lvl0()
                     elif (brush_type == Brush.LAVA):
                         if window.is_pressed(ti.ui.SHIFT):
-                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,-substeps)
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,-substeps,brush_strength)
                         else:
                             # print('aaaaaaaa')
-                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,substeps)
+                            solver.set_active_pulses(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,substeps,brush_strength)
                             # print('bbbbbbbbbb')
                     elif (brush_type == Brush.HEAT):
                         if window.is_pressed(ti.ui.SHIFT):
-                            solver.remove_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                            solver.remove_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,brush_strength)
                         else:
-                            solver.add_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius)
+                            solver.add_heat(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]),particle_radius,brush_strength)
                 # if(validAnchor):
                 #     print('Yes')
                 # update_particle_pos(anchor_x,anchor_y)

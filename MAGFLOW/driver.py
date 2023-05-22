@@ -8,6 +8,7 @@ from MAGFLOW.grid import Grid
 from enum import Enum
 
 np.random.seed(42)
+max_brush_strength_factor = 5.0
 
 class PulseFileStatus(Enum):
     INACTIVE = 0
@@ -124,9 +125,9 @@ class Driver:
 
         return local_CAList
 
-    def set_active_pulses(self,center_x,center_y,radius,active_value: int):
+    def set_active_pulses(self,center_x,center_y,radius,active_value,brush_strength):
         # height = 0.0001
-        pulse_km3_per_s = 0.005*0.005*0.01
+        pulse_km3_per_s = 0.005*0.005*0.01*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -173,8 +174,8 @@ class Driver:
             if(self.pulse_file_status == PulseFileStatus.ACTIVE):
                 self.set_active_pulses_gaussian_kernel(self.pulse_file_vent_x[self.pulse_file_index],self.pulse_file_vent_y[self.pulse_file_index],self.pulse_file_radius[self.pulse_file_index],substeps)
         
-    def add_dem(self,center_x,center_y,radius):
-        height = 10.0
+    def add_dem(self,center_x,center_y,radius,brush_strength):
+        height = 10.0*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -187,8 +188,8 @@ class Driver:
                 if(u<radius_grid*radius_grid):
                     self.Grid.dem_elev[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
     
-    def remove_dem(self,center_x,center_y,radius):
-        height = 10.0
+    def remove_dem(self,center_x,center_y,radius,brush_strength):
+        height = 10.0*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -201,8 +202,8 @@ class Driver:
                 if(u<radius_grid*radius_grid):
                     self.Grid.dem_elev[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
     
-    def add_heat(self,center_x,center_y,radius):
-        height = 10e12
+    def add_heat(self,center_x,center_y,radius,brush_strength):
+        height = 10e12*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -215,8 +216,8 @@ class Driver:
                 if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > 0.0001):
                     self.Grid.heat_quantity[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
     
-    def remove_heat(self,center_x,center_y,radius):
-        height = 10e12
+    def remove_heat(self,center_x,center_y,radius,brush_strength):
+        height = 10e12*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
