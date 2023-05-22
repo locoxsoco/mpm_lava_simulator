@@ -126,13 +126,14 @@ class Grid:
         self.global_delta_time = ti.field(ti.f32, shape=())
         
         self.is_active = ti.field(ti.i32, shape=(n_grid,n_grid))
+        self.is_active_ui = ti.field(ti.i32, shape=(n_grid,n_grid))
         self.pulse_volume = ti.field(ti.f32, shape=(n_grid,n_grid))
 
         # Etna's lava parameters
         self.lava_density = 2600.0
         self.specific_heat_capacity = 1150.0
         self.emissivity = 0.9
-        self.ambient_temperature = 298.15
+        # self.ambient_temperature = 298.15
         self.ambient_temperature = 1200.0
         self.solidification_temperature = 950.0
         self.extrusion_temperature = 1400.0
@@ -163,7 +164,6 @@ class Grid:
         self.neighDistances.from_numpy(neighDistances)
 
 
-        self.active = ti.field(ti.i32, (n_grid, ) * (dim-1))
         self.init_values(heightmap)
         self.initialize_m_transforms_lvl0()
         self.initialize_m_transforms_lvl1()
@@ -175,11 +175,11 @@ class Grid:
             # self.dem_elev[i,j] = heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((j/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]*self.km_to_m
             self.dem_elev[i,j] = heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m*self.grid_size_m_to_scaled_grid_size_m
             self.parentcodes[i,j] = 0
-            self.active[i,j] = -1
             self.lava_thickness[i,j] = 0.0
             self.solid_lava_thickness[i,j] = 0.0
             self.heat_quantity[i,j] = 0.0
             self.is_active[i,j] = 0
+            self.is_active_ui[i,j] = 0
             self.pulse_volume[i,j] = 0.0
 
             self.temperature[i,j] = self.ambient_temperature
@@ -467,7 +467,10 @@ class Grid:
         for i,k in self.dem_elev:
             if(self.is_active[i,k]>0 and self.lava_thickness[i,k] < self.max_lava_thickness):
                 pulsevolume = self.pulse_volume[i,k]
-                pulsevolume *= self.km_to_m**3*global_delta_time
+                if(self.is_active_ui[i,k]):
+                    pulsevolume *= self.km_to_m**3
+                else:
+                    pulsevolume *= self.km_to_m**3*global_delta_time
                 pulseThickness = pulsevolume / self.cell_area_m
                 new_lava_thickness = self.lava_thickness[i,k] + pulseThickness
                 if (new_lava_thickness > self.max_lava_thickness):

@@ -138,6 +138,7 @@ class Driver:
                 u = (center_x-x)**2 + (center_y-y)**2
                 if(u<radius_grid*radius_grid):
                     self.Grid.is_active[x,y] = active_value
+                    self.Grid.is_active_ui[x,y] = 1
                     self.Grid.pulse_volume[x,y] += pulse_km3_per_s * cubicSmooth(u,radius_grid*radius_grid)
     
     def set_active_pulses_gaussian_kernel(self,center_x,center_y,radius,active_value: int):
@@ -151,6 +152,7 @@ class Driver:
         for index_y, y in enumerate(range(bbox_min_y,bbox_max_y),start=0):
             for index_x, x in enumerate(range(bbox_min_x,bbox_max_x),start=0):
                 self.Grid.is_active[x,y] = active_value
+                self.Grid.is_active_ui[x,y] = 0
                 # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
                 self.Grid.pulse_volume[x,y] += pulse_km3_per_s * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
     

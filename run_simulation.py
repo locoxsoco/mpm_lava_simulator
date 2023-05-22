@@ -41,6 +41,7 @@ debug_mesh_checkbox = 0
 dem_checkbox = 1
 lava_checkbox = 0
 heat_checkbox = 0
+brush_strength = 1
 brush_type = Brush.DEM
 run_state = 0
 pulse_state = 0
@@ -61,6 +62,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
     global run_state
     global pulse_state
     global particle_radius
+    global brush_strength
     global brush_type
     global debug_grid_lava_type
 
@@ -80,7 +82,7 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             debug_grid_lava_checkbox = 0
     
     run_state_text = 'Running' if run_state else 'Paused'
-    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.25, 0.185) as w:
+    with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.27, 0.185) as w:
         # w.text(f'Volume Erupted: {round(volumeErupted,2)} km3')
         w.text(f'Simulation time: {simulation_time} s')
         if w.button("Run"):
@@ -95,11 +97,21 @@ def show_options(gui,pulseVolume,grid,simulation_time):
         if w.button("Pause Pulse"):
             pulse_state = 0
     
+    with gui.sub_window(f'Lava Properties', 0.0, 0.185, 0.27, 0.185) as w:
+        grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 1000.0, 10000.0)
+        grid.specific_heat_capacity = w.slider_float("Heat Capacity (J/Kg K)", grid.specific_heat_capacity, 800.0, 1600.0)
+        grid.emissivity = w.slider_float("Lava emissivity", grid.emissivity, 0.0, 1.0)
+        grid.solidification_temperature = w.slider_float("Solidification T. (K)", grid.solidification_temperature, 800.0, 1000.0)
+        grid.extrusion_temperature = w.slider_float("Extrusion T. (K)", grid.extrusion_temperature, 1300.0, 1600.0)
+        grid.H2O = w.slider_float("Water content (wt%)", grid.H2O, 0.01, 0.10)
+        grid.cooling_accelerator_factor = w.slider_float("Cooling Factor", grid.cooling_accelerator_factor, 1.0 , 1000.0)
+
     # customPulseVolume = 0.0
-    with gui.sub_window(f'Brush (Ctrl to add, Ctrl+Shift to remove)', 0.0, 0.185, 0.165, 0.125) as w:
+    with gui.sub_window(f'Brush (Ctrl to add, Ctrl+Shift to remove)', 0.0, 0.37, 0.165, 0.145) as w:
         dem_checkbox = w.checkbox("DEM", dem_checkbox)
         lava_checkbox = w.checkbox("Lava", lava_checkbox)
         heat_checkbox = w.checkbox("Heat", heat_checkbox)
+        brush_strength = w.slider_float("Strength", brush_strength, 1.0, 10.0)
         particle_radius = w.slider_float("Size (km)", particle_radius, 0.1, 1)
 
         if(dem_checkbox and brush_type != Brush.DEM):
@@ -115,10 +127,6 @@ def show_options(gui,pulseVolume,grid,simulation_time):
             dem_checkbox = 0
             lava_checkbox = 0
         # customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
-    
-    with gui.sub_window(f'Lava Properties', 0.0, 0.310, 0.25, 0.085) as w:
-        grid.lava_density = w.slider_float("Lava density (kg/m3)", grid.lava_density, 2000.0, 4000.0)
-        grid.cooling_accelerator_factor = w.slider_float("Cooling Factor", grid.cooling_accelerator_factor, 1.0 , 1000.0)
 
 
 def render(camera,window,scene,canvas,heightmap,grid):
