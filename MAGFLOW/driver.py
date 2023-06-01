@@ -58,9 +58,9 @@ class Driver:
         # Read pulse txt file
         self.pulse_file_init_time = [0.0,100.0,300.0,400.0,500.0]
         self.pulse_file_end_time = [100.0,200.0,400.0,500.0,1000000.0]
-        weak_pulse = 0.005*0.005*0.005
-        normal_pulse = 0.005*0.005*0.01
-        strong_pulse = 0.005*0.005*1.0
+        weak_pulse = 0.005*0.005*0.0003
+        normal_pulse = 0.005*0.005*0.0005
+        strong_pulse = 0.005*0.005*0.0007
         self.pulse_file_volume_km3_per_s = [normal_pulse,normal_pulse,normal_pulse,weak_pulse,strong_pulse]
         self.pulse_file_radius = [1,2,4,6,8]
         self.pulse_file_vent_x = [200,200,200,200,200]
@@ -213,11 +213,11 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > 0.0001):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m):
                     self.Grid.heat_quantity[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
     
     def remove_heat(self,center_x,center_y,radius,brush_strength):
-        height = 10e12*brush_strength/max_brush_strength_factor
+        height = 10e10*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -227,7 +227,7 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > 0.0001):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m):
                     # print(f'before self.Grid.heat_quantity[x,y]: {self.Grid.heat_quantity[x,y]}')
                     self.Grid.heat_quantity[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
                     if(self.Grid.heat_quantity[x,y] < 0.0):

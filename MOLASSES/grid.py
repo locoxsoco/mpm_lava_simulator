@@ -85,10 +85,10 @@ class Grid:
     def __init__(self,n_grid,dim,heightmap):
         self.grid_size_to_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
 
-        self.cube_positions = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions2 = ti.Vector.field(dim, ti.f32, 8)
-        self.cube_positions.from_numpy(cube_verts_list)
-        self.cube_positions2.from_numpy(cube_verts_list)
+        self.cube_positions_dem = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_positions_lava1 = ti.Vector.field(dim, ti.f32, 8)
+        self.cube_positions_dem.from_numpy(cube_verts_list)
+        self.cube_positions_lava1.from_numpy(cube_verts_list)
         self.cube_indices = ti.field(ti.i32, shape=len(cube_faces_list))
         self.cube_indices.from_numpy(cube_faces_list)
         self.cube_normals = ti.Vector.field(dim, ti.f32, 8)
@@ -226,7 +226,7 @@ class Grid:
 
         # NORTH neighbor
         code = self.parentcodes[aRow,aCol] & 1
-        if not(code): # NORTH cell is not the parent of active cell
+        if not(code) and Nrow < 400: # NORTH cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,aCol]: # active cell is higher than North neighbor
                 # Calculate elevation difference between active cell and its North neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,aCol] # 1.0 is the weight for a cardinal direction cell
@@ -237,7 +237,7 @@ class Grid:
         
         # SOUTH
         code = self.parentcodes[aRow,aCol] & 2
-        if not(code): # SOUTH cell is not the parent of active cell
+        if not(code) and Srow >= 0: # SOUTH cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,aCol]: # active cell is higher than SOUTH neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[Srow,aCol] # 1.0 is the weight for a cardinal direction cell
@@ -248,7 +248,7 @@ class Grid:
 
         # EAST
         code = self.parentcodes[aRow,aCol] & 4
-        if not(code): # EAST cell is not the parent of active cell
+        if not(code) and Ecol < 400: # EAST cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[aRow,Ecol]: # active cell is higher than EAST neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[aRow,Ecol] # 1.0 is the weight for a cardinal direction cell
@@ -260,7 +260,7 @@ class Grid:
 
         # WEST
         code = self.parentcodes[aRow,aCol] & 8
-        if not(code): # WEST cell is not the parent of active cell
+        if not(code) and Wcol >= 0: # WEST cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[aRow,Wcol]: # active cell is higher than WEST neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[aRow,Wcol] # 1.0 is the weight for a cardinal direction cell
@@ -271,7 +271,7 @@ class Grid:
         # DIAGONAL CELLS
         # NORTHEAST
         code = self.parentcodes[aRow,aCol] & 16
-        if not(code): # NE cell is not the parent of active cell
+        if not(code) and Nrow < 400 and Ecol < 400: # NE cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,Ecol]: # active cell is higher than NE neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,Ecol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
@@ -281,7 +281,7 @@ class Grid:
 
         # NORTHWEST
         code = self.parentcodes[aRow,aCol] & 32
-        if not(code): # NW cell is not the parent of active cell
+        if not(code) and Nrow < 400 and Wcol >= 0: # NW cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,Wcol]: # active cell is higher than NW neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,Wcol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
@@ -291,7 +291,7 @@ class Grid:
         
         # SOUTHEAST
         code = self.parentcodes[aRow,aCol] & 64
-        if not(code): # SE cell is not the parent of active cell
+        if not(code) and Srow >= 0 and Ecol < 400: # SE cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,Ecol]: # active cell is higher than SE neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Srow,Ecol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
@@ -301,7 +301,7 @@ class Grid:
         
         # SOUTHWEST
         code = self.parentcodes[aRow,aCol] & 128
-        if not(code): # SW cell is not the parent of active cell
+        if not(code) and Srow >= 0 and Wcol >= 0: # SW cell is not the parent of active cell
             if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,Wcol]: # active cell is higher than SW neighbor
                 # Calculate elevation difference between active and neighbor
                 self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Srow,Wcol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell

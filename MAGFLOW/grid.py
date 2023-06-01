@@ -70,11 +70,12 @@ class Grid:
         self.grid_size_km_to_scaled_grid_size_km = self.scaled_grid_size_km/self.grid_size_to_km
         print(f'self.grid_size_to_km: {self.grid_size_to_km} self.km_to_m: {self.km_to_m}')
 
-        self.rendering_lava_height_minimum_m = 0.5
-        self.update_temperature_lava_height_minimum_m = 0.1
-        self.delta_total_height_minimum_m = 1.0
+        self.rendering_lava_height_minimum_m = 1.0
         self.flux_height_minimum_m = 5.0
-        self.global_delta_time_maximum_s = 8.0
+        self.update_temperature_lava_height_minimum_m = 0.001
+        self.update_heat_quantity_lava_height_minimum_m = 0.001
+        self.delta_total_height_minimum_m = 2.0
+        self.global_delta_time_maximum_s = 1.0
 
         self.cube_positions_dem = ti.Vector.field(dim, ti.f32, 8)
         self.cube_positions_dem.from_numpy(cube_verts_list)
@@ -134,17 +135,17 @@ class Grid:
         self.specific_heat_capacity = 1150.0
         self.emissivity = 0.9
         # self.ambient_temperature = 298.15
-        self.ambient_temperature = 1200.0
+        self.ambient_temperature = 400.0
         self.solidification_temperature = 950.0
-        self.extrusion_temperature = 1400.0
+        self.extrusion_temperature = 1405.0
         self.H2O = 0.06325
         self.gravity = 9.81
         self.delta_time_c = 0.2
         self.cell_area_m = (self.scaled_grid_size_m)**2
         print(f'self.grid_size_to_km: {self.grid_size_to_km} self.cell_area_m: {self.cell_area_m}')
-        self.global_delta_time = 0.0
+        self.global_delta_time = 1.0
         self.c_v = self.specific_heat_capacity
-        self.max_lava_thickness = 250.0
+        self.max_lava_thickness_m = 250.0
         self.cooling_accelerator_factor = 1.0
         self.stefan_boltzmann_constant = 5.68 * 10**(-4)
 
@@ -279,7 +280,7 @@ class Grid:
             pos_idx = 8*idx
             lava_thickness_m = self.lava_thickness[i,k]
             if lava_thickness_m > self.rendering_lava_height_minimum_m:
-                base_height = (self.dem_elev[i,k]+lava_thickness_m)/self.km_to_m
+                base_height = (self.dem_elev[i,k]+self.solid_lava_thickness[i,k])/self.km_to_m
                 top_height = base_height + lava_thickness_m/self.km_to_m
                 # Height pos
                 self.cube_positions_lava[pos_idx+0].y = base_height
@@ -371,16 +372,29 @@ class Grid:
             q_tot = 0.0
             for n in ti.static(range(8)):
                 q_tot += self.lava_flux[i,k,n]
-            self.delta_time[i,k] = self.global_delta_time_maximum_s
-            if q_tot<0:
+            if q_tot<-1.0 and h>self.flux_height_minimum_m:
                 self.delta_time[i,k] = c*h*A/ti.abs(q_tot)
+            else:
+                self.delta_time[i,k] = self.global_delta_time_maximum_s
+            # if((i < 50 or k < 50) and self.delta_time[i,k] != self.global_delta_time_maximum_s):
+            #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
+            # if(self.delta_time[i,k] < 1e-5):
+            #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
     
     @ti.kernel
-    def computeGlobalTimeStep(self) -> ti.f32:
+    # def computeGlobalTimeStep(self) -> ti.f32:
+    def computeGlobalTimeStep(self) -> ti.math.vec3:
         global_delta_time = self.global_delta_time_maximum_s
+        index_global_x = -1
+        index_global_y = -1
         for i,k in self.dem_elev:
+            aux = global_delta_time
             ti.atomic_min(global_delta_time, self.delta_time[i,k])
-        return global_delta_time
+            if(aux != global_delta_time):
+                index_global_x = i
+                index_global_y = k
+        return ti.math.vec3(global_delta_time,index_global_x,index_global_y)
+        # return global_delta_time
     
     @ti.kernel
     def computeNewLavaThickness(self,global_delta_time: float):
@@ -390,8 +404,15 @@ class Grid:
                 q_tot += self.lava_flux[i,k,n]
             delta_lava_thickness = q_tot*global_delta_time/self.cell_area_m
             self.lava_thickness[i,k] += delta_lava_thickness
+            rho = self.lava_density
+            c_v = self.c_v
+            h_t_dt = self.lava_thickness[i,k]
+            A = self.cell_area_m
+            curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
+            self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
             if(self.lava_thickness[i,k]<0):
                 self.lava_thickness[i,k] = 0.0
+                self.temperature[i,k] = self.ambient_temperature
             if(ti.math.isnan(delta_lava_thickness)):
                 print(f'i: {i} k: {k} q_tot:{q_tot} delta_lava_thickness: {delta_lava_thickness} self.delta_time[i,k]: {self.delta_time[i,k]} self.global_delta_time: {self.global_delta_time} global_delta_time: {global_delta_time} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
                 print(f'i: {i} k: {k} self.lava_flux[i,k,0]: {self.lava_flux[i,k,0]} self.lava_flux[i,k,1]: {self.lava_flux[i,k,1]} self.lava_flux[i,k,2]: {self.lava_flux[i,k,2]} self.lava_flux[i,k,3]: {self.lava_flux[i,k,3]} self.lava_flux[i,k,4]: {self.lava_flux[i,k,4]} self.lava_flux[i,k,5]: {self.lava_flux[i,k,5]} self.lava_flux[i,k,6]: {self.lava_flux[i,k,6]} self.lava_flux[i,k,7]: {self.lava_flux[i,k,7]}')
@@ -418,13 +439,23 @@ class Grid:
             cooling_accelerator_factor = self.cooling_accelerator_factor # * 10.0**(2)
             # print(f'cooling_accelerator_factor: {cooling_accelerator_factor}')
             delta_Q_t_r = 0.0
-            if self.lava_thickness[i,k] > 0.0:
+            if self.lava_thickness[i,k] > self.update_heat_quantity_lava_height_minimum_m:
                 delta_Q_t_r = epsilon * A * sigma * self.temperature[i,k]**4 * global_delta_time * cooling_accelerator_factor
 
             self.heat_quantity[i,k] += delta_Q_t_m - delta_Q_t_r
+            rho = self.lava_density
+            c_v = self.c_v
+            h_t_dt = self.lava_thickness[i,k]
+            A = self.cell_area_m
+            curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
+            self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
+            
+            if(self.heat_quantity[i,k]<0):
+                self.heat_quantity[i,k] = 0.0
+                self.temperature[i,k] = self.ambient_temperature
             # self.heat_quantity[i,k] += delta_Q_t_m
-            # if(i==215 and k==215):
-            #     print(f'self.heat_quantity[i,k]: {self.heat_quantity[i,k]} delta_Q_t_m: {delta_Q_t_m} delta_Q_t_r: {delta_Q_t_r}')
+            # if(i==201 and k==201):
+            #     print(f'self.heat_quantity[i,k]: {self.heat_quantity[i,k]} delta_Q_t_m: {delta_Q_t_m} delta_Q_t_r: {delta_Q_t_r} global_delta_time: {global_delta_time}')
     
     @ti.kernel
     def computeLavaSolidification(self,global_delta_time: float):
@@ -432,16 +463,23 @@ class Grid:
             if (self.temperature[i,k] < self.solidification_temperature):
                 epsilon = self.emissivity
                 sigma = self.stefan_boltzmann_constant
-                cooling_accelerator_factor = self.cooling_accelerator_factor * 10.0**(2)
+                cooling_accelerator_factor = self.cooling_accelerator_factor #* 10.0**(2)
                 rho = self.lava_density
                 c_v = self.c_v
                 new_solid_lava = (epsilon * sigma * self.temperature[i,k]**3 * global_delta_time * cooling_accelerator_factor) / (rho * c_v)
                 if(self.lava_thickness[i,k] > new_solid_lava):
                     self.solid_lava_thickness[i,k] += new_solid_lava
                     self.lava_thickness[i,k] -= new_solid_lava
+                    rho = self.lava_density
+                    c_v = self.c_v
+                    h_t_dt = self.lava_thickness[i,k]
+                    A = self.cell_area_m
+                    curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
+                    self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
                 else:
                     self.solid_lava_thickness[i,k] += self.lava_thickness[i,k]
                     self.lava_thickness[i,k] = 0.0
+                    self.temperature[i,k] = self.ambient_temperature
     
     @ti.kernel
     def updateTemperature(self):
@@ -452,12 +490,16 @@ class Grid:
                 h_t_dt = self.lava_thickness[i,k]
                 A = self.cell_area_m
                 curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
+                if(curr_temperature > self.extrusion_temperature):
+                    self.heat_quantity[i,k] = self.extrusion_temperature * (rho * c_v * h_t_dt * A)
+                elif(curr_temperature < self.ambient_temperature):
+                    self.heat_quantity[i,k] = self.ambient_temperature * (rho * c_v * h_t_dt * A)
                 self.temperature[i,k] = ti.max(self.ambient_temperature,ti.min(curr_temperature,self.extrusion_temperature))
                 # self.temperature[i,k] = curr_temperature
             # else:
             #     self.temperature[i,k] = 0.0
             #     self.heat_quantity[i,k] = 0.0
-            # if(i==215 and k==215):
+            # if(i==201 and k==201):
             #     print(f'self.temperature[i,k]: {self.temperature[i,k]}')
 
         
@@ -465,7 +507,9 @@ class Grid:
     @ti.kernel
     def pulse(self, global_delta_time: float):
         for i,k in self.dem_elev:
-            if(self.is_active[i,k]>0 and self.lava_thickness[i,k] < self.max_lava_thickness):
+            if(self.is_active[i,k]>0 and self.lava_thickness[i,k] < self.max_lava_thickness_m):
+                # if(i==200 and k==200):
+                #     print(f'self.is_active[i,k]: {self.is_active[i,k]}')
                 pulsevolume = self.pulse_volume[i,k]
                 if(self.is_active_ui[i,k]):
                     pulsevolume *= self.km_to_m**3
@@ -473,12 +517,12 @@ class Grid:
                     pulsevolume *= self.km_to_m**3*global_delta_time
                 pulseThickness = pulsevolume / self.cell_area_m
                 new_lava_thickness = self.lava_thickness[i,k] + pulseThickness
-                if (new_lava_thickness > self.max_lava_thickness):
-                    pulseThickness = self.max_lava_thickness - self.lava_thickness[i,k]
+                if (new_lava_thickness > self.max_lava_thickness_m):
+                    pulseThickness = self.max_lava_thickness_m - self.lava_thickness[i,k]
                     pulsevolume = pulseThickness * self.cell_area_m
                 self.lava_thickness[i,k] += pulseThickness
                 self.is_active[i,k] -= 1
-                self.pulse_volume[i,k] = 0.0
+                # self.pulse_volume[i,k] = 0.0
                 if(pulseThickness>0):
                     # print(f'i,k: {i,k} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
                     rho = self.lava_density
@@ -498,7 +542,7 @@ class Grid:
                     pulsevolume = pulseThickness * self.cell_area_m
                 self.lava_thickness[i,k] -= pulseThickness
                 self.is_active[i,k] += 1
-                self.pulse_volume[i,k] = 0.0
+                # self.pulse_volume[i,k] = 0.0
                 if(pulseThickness>0):
                     rho = self.lava_density
                     c_v = self.c_v

@@ -103,8 +103,8 @@ def configureParams(inParams, outParams):
     # To apply a single PULSE_VOLUME, set both the MIN_ and MAX_ to the same value.
     inParams.min_pulse_volume = 100
     inParams.max_pulse_volume = 100
-    inParams.min_pulse_volume = 0.1
-    inParams.max_pulse_volume = 0.1
+    inParams.min_pulse_volume = 0.001
+    inParams.max_pulse_volume = 0.001
     #
 
     ########################
