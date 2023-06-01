@@ -372,7 +372,7 @@ class Grid:
             q_tot = 0.0
             for n in ti.static(range(8)):
                 q_tot += self.lava_flux[i,k,n]
-            if q_tot<-1.0 and h>self.flux_height_minimum_m:
+            if q_tot<0.0 and h>self.flux_height_minimum_m:
                 self.delta_time[i,k] = c*h*A/ti.abs(q_tot)
             else:
                 self.delta_time[i,k] = self.global_delta_time_maximum_s
