@@ -37,7 +37,7 @@ class Driver:
         self.volumeRemaining = self.active_flow.volumeToErupt
         self.volumeErupted = 0.0
         self.CAListSize = 0
-        self.current_vent = -1
+        self.current_vent = 0
         self.pulseCount = 0
         # self.NeighborList = []
         # for _ in range(8):

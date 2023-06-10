@@ -56,20 +56,60 @@ class Driver:
         self.ActiveCounter = 0
 
         # Read pulse txt file
-        self.pulse_file_init_time = [0.0,100.0,300.0,400.0,500.0]
-        self.pulse_file_end_time = [100.0,200.0,400.0,500.0,1000000.0]
-        weak_pulse = 0.005*0.005*0.0003
-        normal_pulse = 0.005*0.005*0.0005
-        strong_pulse = 0.005*0.005*0.0007
-        self.pulse_file_volume_km3_per_s = [normal_pulse,normal_pulse,normal_pulse,weak_pulse,strong_pulse]
-        self.pulse_file_radius = [1,2,4,6,8]
-        self.pulse_file_vent_x = [200,200,200,200,200]
-        self.pulse_file_vent_y = [200,200,200,200,200]
-        self.pulse_file_len = 5
+        self.pulse_file_init_time = [0.0,600.0,1200.0,1800.0,2400.0,3000.0,3600.0,4200.0,4800.0,5400.0,6000.0,6600.0]
+        self.pulse_file_end_time = [600.0,1200.0,1800.0,2400.0,3000.0,3600.0,4200.0,4800.0,5400.0,6000.0,6600.0,7200.0]
+        # Mount Etna, Italy (2001)
+        # Case IV
+        self.pulse_file_volume_m3_per_s = [
+            56.25,
+            168.75,
+            281.25,
+            393.75,
+            421.875,
+            365.625,
+            309.375,
+            253.125,
+            196.875,
+            140.625,
+            84.375,
+            28.125
+        ]
+        # # Case VII
+        # self.pulse_file_volume_m3_per_s = [
+        #     112.5,
+        #     337.5,
+        #     562.5,
+        #     787.5,
+        #     843.75,
+        #     731.25,
+        #     618.75,
+        #     506.25,
+        #     393.75,
+        #     281.25,
+        #     168.75,
+        #     56.25
+        # ]
+        self.pulse_file_radius = [6,6,6,6,6,7,7,7,7,7,8,8]
+        self.pulse_file_vent_x = [200,200,200,200,200,200,200,200,200,200,200,200]
+        self.pulse_file_vent_y = [200,200,200,200,200,200,200,200,200,200,200,200]
+        self.pulse_file_len = 12
         self.pulse_file_index = 0
         self.pulse_file_status = PulseFileStatus.INACTIVE
         # Generate Gaussian filters
-        self.pulse_file_gaussian_filters = [gkern(1*2+1),gkern(2*2+1),gkern(4*2+1),gkern(6*2+1),gkern(8*2+1)]
+        self.pulse_file_gaussian_filters = [
+            gkern(self.pulse_file_radius[0]*2+1),
+            gkern(self.pulse_file_radius[1]*2+1),
+            gkern(self.pulse_file_radius[2]*2+1),
+            gkern(self.pulse_file_radius[3]*2+1),
+            gkern(self.pulse_file_radius[4]*2+1),
+            gkern(self.pulse_file_radius[5]*2+1),
+            gkern(self.pulse_file_radius[6]*2+1),
+            gkern(self.pulse_file_radius[7]*2+1),
+            gkern(self.pulse_file_radius[8]*2+1),
+            gkern(self.pulse_file_radius[9]*2+1),
+            gkern(self.pulse_file_radius[10]*2+1),
+            gkern(self.pulse_file_radius[11]*2+1)
+        ]
 
         self.n_steps = 0
         self.time = 0.0
@@ -126,8 +166,7 @@ class Driver:
         return local_CAList
 
     def set_active_pulses(self,center_x,center_y,radius,active_value,brush_strength):
-        # height = 0.0001
-        pulse_km3_per_s = 0.005*0.005*0.01*brush_strength/max_brush_strength_factor
+        pulse_m3_per_s = 10.0*brush_strength/max_brush_strength_factor
         radius_grid = math.floor(radius/self.Grid.grid_size_to_km)
         bbox_min_x = center_x - radius_grid
         bbox_min_y = center_y - radius_grid
@@ -140,11 +179,10 @@ class Driver:
                 if(u<radius_grid*radius_grid):
                     self.Grid.is_active[x,y] = active_value
                     self.Grid.is_active_ui[x,y] = 1
-                    self.Grid.pulse_volume[x,y] += pulse_km3_per_s * cubicSmooth(u,radius_grid*radius_grid)
+                    self.Grid.pulse_volume[x,y] += pulse_m3_per_s * cubicSmooth(u,radius_grid*radius_grid)
     
     def set_active_pulses_gaussian_kernel(self,center_x,center_y,radius,active_value: int):
-        # height = 0.0001
-        pulse_km3_per_s = 0.005*0.005*0.01
+        pulse_m3_per_s = self.pulse_file_volume_m3_per_s[self.pulse_file_index]
         bbox_min_x = center_x - radius
         bbox_min_y = center_y - radius
         bbox_max_x = center_x + radius
@@ -155,17 +193,18 @@ class Driver:
                 self.Grid.is_active[x,y] = active_value
                 self.Grid.is_active_ui[x,y] = 0
                 # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
-                self.Grid.pulse_volume[x,y] += pulse_km3_per_s * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
+                # print(f'self.pulse_file_gaussian_filters[self.pulse_file_index]: {self.pulse_file_gaussian_filters[self.pulse_file_index]}')
+                self.Grid.pulse_volume[x,y] = pulse_m3_per_s * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
     
-    def set_active_pulses_file(self,simulation_time,substeps):
-        # height = 0.0001
-        # print('aaaa')
+    def set_active_pulses_file(self,simulation_time,substeps,window):
         if(self.pulse_file_status != PulseFileStatus.END):
-            # print('bbbb')
             if(simulation_time >= self.pulse_file_end_time[self.pulse_file_index]):
                 self.pulse_file_index += 1
+
+                # print(f'self.pulse_file_index: {self.pulse_file_index} simulation_time: {simulation_time}')
                 if(self.pulse_file_index >= self.pulse_file_len):
                     self.pulse_file_status = PulseFileStatus.END
+                    return
                 else:
                     self.pulse_file_status = PulseFileStatus.INACTIVE
             if(simulation_time >= self.pulse_file_init_time[self.pulse_file_index]):
@@ -213,7 +252,7 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m[None]):
                     self.Grid.heat_quantity[x,y] += height * cubicSmooth(u,radius_grid*radius_grid)
     
     def remove_heat(self,center_x,center_y,radius,brush_strength):
@@ -227,7 +266,7 @@ class Driver:
         for y in range(bbox_min_y,bbox_max_y):
             for x in range(bbox_min_x,bbox_max_x):
                 u = (center_x-x)**2 + (center_y-y)**2
-                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m):
+                if(u<radius_grid*radius_grid and self.Grid.lava_thickness[x,y] > self.Grid.update_heat_quantity_lava_height_minimum_m[None]):
                     # print(f'before self.Grid.heat_quantity[x,y]: {self.Grid.heat_quantity[x,y]}')
                     self.Grid.heat_quantity[x,y] -= height * cubicSmooth(u,radius_grid*radius_grid)
                     if(self.Grid.heat_quantity[x,y] < 0.0):

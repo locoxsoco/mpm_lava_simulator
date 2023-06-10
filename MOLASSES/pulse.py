@@ -1,11 +1,12 @@
 def pulse(actList, active_flow, grid, volumeRemaining, gridinfo, volumeErupted):
     
-    pulseThickness = 0.0 # Pulse Volume divided by data grid resolution
-    pulsevolume = active_flow.pulsevolume
+    # pulseThickness = 0.0 # Pulse Volume divided by data grid resolution
     
     if volumeRemaining > 0.0:
-        if pulsevolume > active_flow.currentvolume:
+        if active_flow.pulsevolume > active_flow.currentvolume:
             pulsevolume = active_flow.currentvolume
+        else:
+            pulsevolume = active_flow.pulsevolume
         pulseThickness = pulsevolume / (gridinfo[1] * gridinfo[5])
         active_flow.currentvolume -= pulsevolume # Subtract pulse volume from flow's total magma budget
         volumeErupted += pulsevolume
