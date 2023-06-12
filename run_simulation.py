@@ -86,8 +86,9 @@ def show_options(gui,substeps,grid,simulation_time,simulation_method):
     run_state_text = 'Running' if run_state else 'Paused'
     with gui.sub_window(f'Simulation status: {run_state_text}', 0.0, 0.0, 0.27, 0.20) as w:
         w.text(f'Simulation time: {round(simulation_time,3)} s')
-        substeps = w.slider_float("Simulation speed", substeps/5.0, 1.0, 4.0)
-        w.text(f'Volume Erupted: {round(grid.global_volume_lava_erupted_m3[None],2)} m3')
+        if(simulation_method=='MAGFLOW'):
+            substeps = w.slider_float("Simulation speed", substeps/5.0, 1.0, 4.0)
+            w.text(f'Volume Erupted: {round(grid.global_volume_lava_erupted_m3[None],2)} m3')
         if w.button("Run"):
             run_state = 1
             init_sim_time = time.time()
@@ -103,11 +104,11 @@ def show_options(gui,substeps,grid,simulation_time,simulation_method):
     
     if(simulation_method == 'MAGFLOW'):
         with gui.sub_window(f'Lava Properties', 0.0, 0.20, 0.27, 0.185) as w:
-            grid.lava_density[None] = w.slider_float("Lava density (kg/m3)", grid.lava_density[None], 2400.0, 2900.0)
-            grid.specific_heat_capacity[None] = w.slider_float("Heat Capacity (J/Kg K)", grid.specific_heat_capacity[None], 800.0, 1600.0)
-            grid.H2O[None] = w.slider_float("Water content (wt%)", grid.H2O[None], 0.05, 0.08)
-            grid.solidification_temperature[None] = w.slider_float("Solidification T. (K)", grid.solidification_temperature[None], 800.0, 1000.0)
-            grid.extrusion_temperature[None] = w.slider_float("Extrusion T. (K)", grid.extrusion_temperature[None], 1360.0, 1430.0)
+            grid.lava_density[None] = w.slider_float("Lava density (kg/m3)", grid.lava_density[None], 20.0, 10000.0)
+            grid.specific_heat_capacity[None] = w.slider_float("Heat Capacity (J/Kg K)", grid.specific_heat_capacity[None], 5.0, 1600.0)
+            grid.H2O[None] = w.slider_float("Water content (wt%)", grid.H2O[None], 0.00, 50.0)
+            grid.solidification_temperature[None] = w.slider_float("Solidification T. (K)", grid.solidification_temperature[None], 400.0, 4500.0)
+            grid.extrusion_temperature[None] = w.slider_float("Extrusion T. (K)", grid.extrusion_temperature[None], 400.0, 2000.0)
             grid.emissivity[None] = w.slider_float("Lava emissivity factor", grid.emissivity[None], 0.0, 0.02)
             grid.cooling_accelerator_factor[None] = w.slider_float("Lava cooling factor", grid.cooling_accelerator_factor[None], 0.0, 10.0)
             
@@ -134,7 +135,8 @@ def show_options(gui,substeps,grid,simulation_time,simulation_method):
                 lava_checkbox = 0
             # customPulseVolume = w.slider_float("Volume (m3)", customPulseVolume, 0.0, 1.0)
     
-    return int(substeps*5.0)
+    if(simulation_method == 'MAGFLOW'):
+        return int(substeps*5.0)
 
 
 def render(camera,window,scene,canvas,heightmap,grid,simulation_method):
@@ -156,8 +158,30 @@ def render(camera,window,scene,canvas,heightmap,grid,simulation_method):
             scene.lines(heightmap.verts, color = (0.28, 0.68, 0.99), width = 0.5, vertex_count = 2, vertex_offset = 4*(normal_line_column*(heightmap.hm_width_px)+i+75))
 
     scene.ambient_light((0.5, 0.5, 0.5))
-    scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
-    scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, 3.0*heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
+    if(simulation_method == 'MAGFLOW'):
+        scene.point_light(pos=(
+            0.0,
+            (heightmap.hm_elev_range_km+grid.underground_m[None]/1000.0)*grid.grid_size_km_to_scaled_grid_size_km*3.0,
+            0.0
+        ), color=(0.7, 0.7, 0.7))
+        scene.point_light(pos=(
+            grid.scaled_grid_size_km*grid.n_grid,
+            (heightmap.hm_elev_range_km+grid.underground_m[None]/1000.0)*grid.grid_size_km_to_scaled_grid_size_km*3.0,
+            0.0
+        ), color=(0.7, 0.7, 0.7))
+        scene.point_light(pos=(
+            0.0,
+            (heightmap.hm_elev_range_km+grid.underground_m[None]/1000.0)*grid.grid_size_km_to_scaled_grid_size_km*3.0,
+            grid.scaled_grid_size_km*grid.n_grid
+        ), color=(0.7, 0.7, 0.7))
+        scene.point_light(pos=(
+            grid.scaled_grid_size_km*grid.n_grid,
+            (heightmap.hm_elev_range_km+grid.underground_m[None]/1000.0)*grid.grid_size_km_to_scaled_grid_size_km*3.0,
+            grid.scaled_grid_size_km*grid.n_grid
+        ), color=(0.7, 0.7, 0.7))
+    elif(simulation_method=='MOLASSES'):
+        scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
+        scene.point_light(pos=(heightmap.hm_width_px*heightmap.px_to_km/2.0, 3.0*heightmap.hm_elev_range_km/2.0, 3.0*heightmap.hm_height_px*heightmap.px_to_km/2.0), color=(0.5, 0.5, 0.5))
 
     canvas.scene(scene)
 
@@ -226,7 +250,7 @@ def main():
             # print(f'window.is_pressed(ti.ui.RMB): {window.is_pressed(ti.ui.RMB)}')
             if window.is_pressed(ti.ui.CTRL):
                 rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1, window.get_window_shape())
-                print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
+                # print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
                 if(window.is_pressed(ti.ui.LMB) and validAnchor):
                     ti_vector_pos_grid = ti_vector_pos/grid.scaled_grid_size_km
@@ -337,32 +361,36 @@ def main():
             elif(run_state == 1):
                 pulse_state = 1
         render(camera,window,scene,canvas,heightmap,grid,simulation_method)
-        substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
+        if(simulation_method == 'MAGFLOW'):
+            substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
+        elif(simulation_method == 'MOLASSES'):
+            show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
         # print(f'solver.Grid: {solver.Grid.lava_density[None]}')
         # print(f'[RUNSIMULATION] solver.active_flow.pulsevolume: {solver.active_flow.pulsevolume}')
-        if(solver.pulse_file_status == PulseFileStatus.END and run_state != 0):
-            run_state = 0
-            print(f'[SIMULATION] Simulation time: {round(time.time()-init_sim_time,2)} s')
-        if(prev_solver_index_file != solver.pulse_file_index):
-            solver.Grid.calculate_m_transforms_lvl0()
-            solver.Grid.calculate_m_transforms_lvl1()
-            solver.Grid.calculate_lava_height_and_color()
-            debug_grid_dem_checkbox = 1
-            debug_grid_lava_checkbox = 1
-            debug_grid_lava_heatmap_checkbox = 0
-            render(camera,window,scene,canvas,heightmap,grid,simulation_method)
-            window.save_image(f'./results/test/frame_{solver.pulse_file_index}.png')
-            window.show()
-            debug_grid_lava_checkbox = 0
-            debug_grid_lava_heatmap_checkbox = 1
-            render(camera,window,scene,canvas,heightmap,grid,simulation_method)
-            substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
-            window.save_image(f'./results/test/frame_heatmap_{solver.pulse_file_index}.png')
-            window.show()
-            debug_grid_dem_checkbox = 0
-            debug_grid_lava_checkbox = 0
-            debug_grid_lava_heatmap_checkbox = 0
-            prev_solver_index_file = solver.pulse_file_index
+        # if(simulation_method == 'MAGFLOW'):
+        #     if(solver.pulse_file_status == PulseFileStatus.END and run_state != 0):
+        #         run_state = 0
+        #         print(f'[SIMULATION] Simulation time: {round(time.time()-init_sim_time,2)} s')
+        #     if(prev_solver_index_file != solver.pulse_file_index):
+        #         solver.Grid.calculate_m_transforms_lvl0()
+        #         solver.Grid.calculate_m_transforms_lvl1()
+        #         solver.Grid.calculate_lava_height_and_color()
+        #         debug_grid_dem_checkbox = 1
+        #         debug_grid_lava_checkbox = 1
+        #         debug_grid_lava_heatmap_checkbox = 0
+        #         render(camera,window,scene,canvas,heightmap,grid,simulation_method)
+        #         window.save_image(f'./results/lava_density/40/frame_{solver.pulse_file_index}.png')
+        #         window.show()
+        #         debug_grid_lava_checkbox = 0
+        #         debug_grid_lava_heatmap_checkbox = 1
+        #         render(camera,window,scene,canvas,heightmap,grid,simulation_method)
+        #         substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
+        #         window.save_image(f'./results/lava_density/40/frame_heatmap_{solver.pulse_file_index}.png')
+        #         window.show()
+        #         debug_grid_dem_checkbox = 0
+        #         debug_grid_lava_checkbox = 0
+        #         debug_grid_lava_heatmap_checkbox = 0
+        #         prev_solver_index_file = solver.pulse_file_index
         window.show()
 
 if __name__ == '__main__':

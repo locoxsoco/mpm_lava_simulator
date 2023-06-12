@@ -124,6 +124,8 @@ class Grid:
         self.is_active_ui = ti.field(ti.i32, shape=(n_grid,n_grid))
         self.pulse_volume = ti.field(ti.f32, shape=(n_grid,n_grid))
 
+        self.underground_m = ti.field(ti.f32, shape=())
+        self.underground_m[None] = 1000.0
         # Etna's lava parameters
         self.lava_density = ti.field(ti.f32, shape=())
         self.specific_heat_capacity = ti.field(ti.f32, shape=())
@@ -201,7 +203,7 @@ class Grid:
     def init_values(self,heightmap: ti.template()):
         for i,j in self.dem_elev:
             # self.dem_elev[i,j] = heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((j/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]*self.km_to_m
-            self.dem_elev[i,j] = heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m*self.grid_size_m_to_scaled_grid_size_m
+            self.dem_elev[i,j] = (heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m+self.underground_m[None])*self.grid_size_m_to_scaled_grid_size_m
             self.parentcodes[i,j] = 0
             self.lava_thickness[i,j] = 0.0
             self.solid_lava_thickness[i,j] = 0.0
