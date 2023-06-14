@@ -219,95 +219,9 @@ class Grid:
     def neighbor_id(self,i,k):
         neighborCount = 0
         aRow,aCol = i,k
-        # Nrow, Srow, Ecol, Wcol = int(aRow + 1), int(aRow - 1), int(aCol + 1), int(aCol - 1)
 
         for n in range(8):
             neighborCount = self.addNeighbor(aRow,aCol,self.opRows[n],self.opCols[n],self.neighCodes[n],self.neighDistances[n],neighborCount)
-
-        # # NORTH neighbor
-        # code = self.parentcodes[aRow,aCol] & 1
-        # if not(code) and Nrow < 400: # NORTH cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,aCol]: # active cell is higher than North neighbor
-        #         # Calculate elevation difference between active cell and its North neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,aCol] # 1.0 is the weight for a cardinal direction cell
-        #         self.neighborListRow[i,k,neighborCount] = Nrow
-        #         self.neighborListCol[i,k,neighborCount] = aCol
-        #         # print(f'neighborCount: {neighborCount} Nrow:{Nrow} aCol: {aCol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
-        #         neighborCount += 1
-        
-        # # SOUTH
-        # code = self.parentcodes[aRow,aCol] & 2
-        # if not(code) and Srow >= 0: # SOUTH cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,aCol]: # active cell is higher than SOUTH neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[Srow,aCol] # 1.0 is the weight for a cardinal direction cell
-        #         self.neighborListRow[i,k,neighborCount] = Srow
-        #         self.neighborListCol[i,k,neighborCount] = aCol
-        #         # # print(f'neighborCount: {neighborCount} Srow:{Srow} aCol: {aCol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
-        #         neighborCount += 1
-
-        # # EAST
-        # code = self.parentcodes[aRow,aCol] & 4
-        # if not(code) and Ecol < 400: # EAST cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[aRow,Ecol]: # active cell is higher than EAST neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[aRow,Ecol] # 1.0 is the weight for a cardinal direction cell
-        #         self.neighborListRow[i,k,neighborCount] = aRow
-        #         self.neighborListCol[i,k,neighborCount] = Ecol
-        #         # # print(f'neighborCount: {neighborCount-1} Nrow:{Nrow} aCol: {aCol} neighborList[{neighborCount-1}].row: {neighborList[neighborCount-1].row} neighborList[{neighborCount-1}].col: {neighborList[neighborCount-1].col}')
-        #         # # print(f'neighborCount: {neighborCount} aRow:{aRow} Ecol: {Ecol} neighborList[{neighborCount}].row: {neighborList[neighborCount].row} neighborList[{neighborCount}].col: {neighborList[neighborCount].col}')
-        #         neighborCount += 1
-
-        # # WEST
-        # code = self.parentcodes[aRow,aCol] & 8
-        # if not(code) and Wcol >= 0: # WEST cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[aRow,Wcol]: # active cell is higher than WEST neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = self.eff_elev[aRow,aCol] - self.eff_elev[aRow,Wcol] # 1.0 is the weight for a cardinal direction cell
-        #         self.neighborListRow[i,k,neighborCount] = aRow
-        #         self.neighborListCol[i,k,neighborCount] = Wcol
-        #         neighborCount += 1
-
-        # # DIAGONAL CELLS
-        # # NORTHEAST
-        # code = self.parentcodes[aRow,aCol] & 16
-        # if not(code) and Nrow < 400 and Ecol < 400: # NE cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,Ecol]: # active cell is higher than NE neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,Ecol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
-        #         self.neighborListRow[i,k,neighborCount] = Nrow
-        #         self.neighborListCol[i,k,neighborCount] = Ecol
-        #         neighborCount += 1
-
-        # # NORTHWEST
-        # code = self.parentcodes[aRow,aCol] & 32
-        # if not(code) and Nrow < 400 and Wcol >= 0: # NW cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Nrow,Wcol]: # active cell is higher than NW neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Nrow,Wcol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
-        #         self.neighborListRow[i,k,neighborCount] = Nrow
-        #         self.neighborListCol[i,k,neighborCount] = Wcol
-        #         neighborCount += 1
-        
-        # # SOUTHEAST
-        # code = self.parentcodes[aRow,aCol] & 64
-        # if not(code) and Srow >= 0 and Ecol < 400: # SE cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,Ecol]: # active cell is higher than SE neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Srow,Ecol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
-        #         self.neighborListRow[i,k,neighborCount] = Srow
-        #         self.neighborListCol[i,k,neighborCount] = Ecol
-        #         neighborCount += 1
-        
-        # # SOUTHWEST
-        # code = self.parentcodes[aRow,aCol] & 128
-        # if not(code) and Srow >= 0 and Wcol >= 0: # SW cell is not the parent of active cell
-        #     if self.eff_elev[aRow,aCol] > self.eff_elev[Srow,Wcol]: # active cell is higher than SW neighbor
-        #         # Calculate elevation difference between active and neighbor
-        #         self.neighborListElevDiff[i,k,neighborCount] = (self.eff_elev[aRow,aCol] - self.eff_elev[Srow,Wcol])/ti.math.sqrt(2) # SQRT2 is the weight for a diagonal cell
-        #         self.neighborListRow[i,k,neighborCount] = Srow
-        #         self.neighborListCol[i,k,neighborCount] = Wcol
-        #         neighborCount += 1    
 
         self.neighborListCounter[i,k] = neighborCount
         # # for i in range(neighborCount):
@@ -326,35 +240,3 @@ class Grid:
                 self.neighborListCol[aRow,aCol,neighborCount] = nCol
                 neighborCount += 1
         return neighborCount
-
-    # def Intersect(self,rayPosition,rayDirection):
-    #     # Compute bounding box
-    #     Box2 box = getDomain()
-
-    #     # Check the intersection with the bounding box
-    #     Vector3 r0 = ray(0);
-    #     Vector3 r1 = ray(1);
-    #     if (!box.Intersect(Vector2(r0[0], r0[1]), Vector2(r1[0], r1[1]), ta, tb))
-    #         return false;
-
-    #     t = ta + 0.0001;
-    #     if (ta < 0.0)
-    #     {
-    #         t = 0.0;
-    #     }
-
-    #     # Ray marching
-    #     while (t < tb)
-    #     {
-    #         // Point along the ray
-    #         Vector3 p = ray(t);
-    #         double h = Height(Vector2(p[0], p[1]));
-    #         if (h > p[2]) {
-    #             q = Vector3(p[0], p[1], h);
-    #             return true;
-    #         }
-    #         else {
-    #             t += 1.0;
-    #         }
-    #     }
-    #     return false;
