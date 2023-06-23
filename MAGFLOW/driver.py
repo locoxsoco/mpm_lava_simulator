@@ -252,8 +252,8 @@ class Driver:
             if(self.pulse_file_status == PulseFileStatus.ACTIVE):
                 self.set_active_pulses_gaussian_kernel(self.pulse_file_vent_x[self.pulse_file_index],self.pulse_file_vent_y[self.pulse_file_index],self.pulse_file_radius[self.pulse_file_index],substeps)
         self.set_active_pulses_gaussian_kernel_upc(
-            258,
-            71,
+            400-156,
+            66,
             self.pulse_file_radius[0],
             substeps)
         self.set_active_pulses_gaussian_kernel_upc(
@@ -261,14 +261,14 @@ class Driver:
             98,
             self.pulse_file_radius[0],
             substeps)
+        # self.set_active_pulses_gaussian_kernel_upc(
+        #     258,
+        #     127,
+        #     self.pulse_file_radius[0],
+        #     substeps)
         self.set_active_pulses_gaussian_kernel_upc(
-            258,
-            127,
-            self.pulse_file_radius[0],
-            substeps)
-        self.set_active_pulses_gaussian_kernel_upc(
-            258,
-            161,
+            400-180,
+            150,
             self.pulse_file_radius[0],
             substeps)
         self.set_active_pulses_gaussian_kernel_upc(
