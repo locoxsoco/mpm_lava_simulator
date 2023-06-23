@@ -1,7 +1,7 @@
 {
 	"Configuration": 
 	{
-        "heightmapFile": "./data/heightmaps/fuji_scoped.png",
+        "heightmapFile": "./data/heightmaps/upc.png",
 		"simulationMethod": "MAGFLOW",
 		"dim": 3,
 		"nGrid": 400,

@@ -171,7 +171,7 @@ class Grid:
         self.stefan_boltzmann_constant[None] = 5.68 * 10**(-8)
 
         self.rendering_lava_height_minimum_m[None] = 0.0
-        self.flux_height_minimum_m[None] = self.scaled_grid_size_m/100.0
+        self.flux_height_minimum_m[None] = self.scaled_grid_size_m/10.0
         self.update_temperature_lava_height_minimum_m[None] = 0.00
         self.update_heat_quantity_lava_height_minimum_m[None] = 0.00
         self.delta_total_height_min = self.scaled_grid_size_m/7.208175
@@ -421,8 +421,8 @@ class Grid:
                 self.delta_time[i,k] = self.global_delta_time_maximum_s[None]
             # if((i < 50 or k < 50) and self.delta_time[i,k] != self.global_delta_time_maximum_s[None]):
             #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
-            # if(self.delta_time[i,k] < 1e-5):
-            #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
+            if(self.delta_time[i,k] < 1e-3):
+                print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
     
     @ti.kernel
     def computeGlobalTimeStep(self) -> ti.f32:

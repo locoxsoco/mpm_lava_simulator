@@ -49,7 +49,7 @@ class Driver:
         self.Heightmap = Heightmap(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m)
         self.grid_size_to_km = self.Heightmap.hm_height_px*self.Heightmap.px_to_km/n_grid
         self.scaled_grid_size_m = self.grid_size_to_km*self.km_to_m
-        self.scaled_grid_size_m = 10.0
+        self.scaled_grid_size_m = 5.0
         self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
         self.Grid = Grid(n_grid,dim,self.Heightmap,self.scaled_grid_size_m)
         self.set_flow_params()
@@ -110,8 +110,8 @@ class Driver:
         #     20503.125
         # ]
         # Custom case
-        self.pulse_file_volume_m3_per_s = [20503.125, 61509.375, 102515.625, 143521.875, 153773.4375, 133270.3125, 112767.1875, 92264.0625, 71760.9375, 51257.8125, 30754.6875, 10251.5625]
-        # self.pulse_file_volume_m3_per_s = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        # self.pulse_file_volume_m3_per_s = [20503.125, 61509.375, 102515.625, 143521.875, 153773.4375, 133270.3125, 112767.1875, 92264.0625, 71760.9375, 51257.8125, 30754.6875, 10251.5625]
+        self.pulse_file_volume_m3_per_s = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         
         self.pulse_file_radius = [5,5,6,6,6,7,7,7,7,7,8,8]
         self.pulse_file_vent_x = [200,200,200,200,200,200,200,200,200,200,200,200]
@@ -219,6 +219,21 @@ class Driver:
                 # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
                 # print(f'self.pulse_file_gaussian_filters[self.pulse_file_index]: {self.pulse_file_gaussian_filters[self.pulse_file_index]}')
                 self.Grid.pulse_volume[x,y] = pulse_m3_per_s*self.grid_size_m_to_scaled_grid_size_m**3 * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
+        
+    def set_active_pulses_gaussian_kernel_upc(self,center_x,center_y,radius,active_value: int):
+        pulse_m3_per_s = 20503000.125
+        bbox_min_x = center_x - radius
+        bbox_min_y = center_y - radius
+        bbox_max_x = center_x + radius
+        bbox_max_y = center_y + radius
+
+        for index_y, y in enumerate(range(bbox_min_y,bbox_max_y),start=0):
+            for index_x, x in enumerate(range(bbox_min_x,bbox_max_x),start=0):
+                self.Grid.is_active[x,y] = active_value
+                self.Grid.is_active_ui[x,y] = 0
+                # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
+                # print(f'self.pulse_file_gaussian_filters[self.pulse_file_index]: {self.pulse_file_gaussian_filters[self.pulse_file_index]}')
+                self.Grid.pulse_volume[x,y] = pulse_m3_per_s*self.grid_size_m_to_scaled_grid_size_m**3 * self.pulse_file_gaussian_filters[0][index_x][index_y]
     
     def set_active_pulses_file(self,simulation_time,substeps):
         if(self.pulse_file_status != PulseFileStatus.END):
@@ -236,6 +251,46 @@ class Driver:
                     self.pulse_file_status = PulseFileStatus.ACTIVE
             if(self.pulse_file_status == PulseFileStatus.ACTIVE):
                 self.set_active_pulses_gaussian_kernel(self.pulse_file_vent_x[self.pulse_file_index],self.pulse_file_vent_y[self.pulse_file_index],self.pulse_file_radius[self.pulse_file_index],substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            258,
+            71,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            138,
+            98,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            258,
+            127,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            258,
+            161,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            149,
+            172,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            235,
+            246,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            140,
+            298,
+            self.pulse_file_radius[0],
+            substeps)
+        self.set_active_pulses_gaussian_kernel_upc(
+            250,
+            334,
+            self.pulse_file_radius[0],
+            substeps)
         
     def add_dem(self,center_x,center_y,radius,brush_strength):
         height = 10.0*brush_strength/max_brush_strength_factor

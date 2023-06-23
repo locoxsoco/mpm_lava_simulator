@@ -9,7 +9,7 @@ from MAGFLOW.driver import Driver as MAGFLOWDriver, PulseFileStatus
 from utils import *
 from enum import Enum
 
-ti.init(arch=ti.gpu)
+ti.init(arch=ti.vulkan)
 particles_pos = ti.Vector.field(3, dtype=ti.f32, shape = 1)
 vector_outside = ti.Vector([-9999, -9999, -9999])
 is_particles_outside = False
