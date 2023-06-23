@@ -44,9 +44,14 @@ class Driver:
         self.active_flow, self.inParams, self.outParams = initialize()
         configureParams(self.inParams, self.outParams)
         self.load_vent_data()
+        self.km_to_m = 1000.0
         # Read in the DEM using the gdal library
         self.Heightmap = Heightmap(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m)
-        self.Grid = Grid(n_grid,dim,self.Heightmap)
+        self.grid_size_to_km = self.Heightmap.hm_height_px*self.Heightmap.px_to_km/n_grid
+        self.scaled_grid_size_m = self.grid_size_to_km*self.km_to_m
+        self.scaled_grid_size_m = 10.0
+        self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
+        self.Grid = Grid(n_grid,dim,self.Heightmap,self.scaled_grid_size_m)
         self.set_flow_params()
         # Initialize the lava flow data structures and initialize vent cell
         self.CAList = self.init_flow()
@@ -59,21 +64,21 @@ class Driver:
         self.pulse_file_init_time = [0.0,600.0,1200.0,1800.0,2400.0,3000.0,3600.0,4200.0,4800.0,5400.0,6000.0,6600.0]
         self.pulse_file_end_time = [600.0,1200.0,1800.0,2400.0,3000.0,3600.0,4200.0,4800.0,5400.0,6000.0,6600.0,7200.0]
         # Mount Etna, Italy (2001)
-        # Case IV
-        self.pulse_file_volume_m3_per_s = [
-            56.25,
-            168.75,
-            281.25,
-            393.75,
-            421.875,
-            365.625,
-            309.375,
-            253.125,
-            196.875,
-            140.625,
-            84.375,
-            28.125
-        ]
+        # # Case IV
+        # self.pulse_file_volume_m3_per_s = [
+        #     56.25,
+        #     168.75,
+        #     281.25,
+        #     393.75,
+        #     421.875,
+        #     365.625,
+        #     309.375,
+        #     253.125,
+        #     196.875,
+        #     140.625,
+        #     84.375,
+        #     28.125
+        # ]
         # # Case VII
         # self.pulse_file_volume_m3_per_s = [
         #     112.5,
@@ -89,7 +94,26 @@ class Driver:
         #     168.75,
         #     56.25
         # ]
-        self.pulse_file_radius = [6,6,6,6,6,7,7,7,7,7,8,8]
+        # # Case IV * 9*9*9
+        # self.pulse_file_volume_m3_per_s = [
+        #     41006.25,
+        #     123018.75,
+        #     205031.25,
+        #     287043.75,
+        #     307546.875,
+        #     266540.625,
+        #     225534.375,
+        #     184528.125,
+        #     143521.875,
+        #     102515.625,
+        #     61509.375,
+        #     20503.125
+        # ]
+        # Custom case
+        self.pulse_file_volume_m3_per_s = [20503.125, 61509.375, 102515.625, 143521.875, 153773.4375, 133270.3125, 112767.1875, 92264.0625, 71760.9375, 51257.8125, 30754.6875, 10251.5625]
+        # self.pulse_file_volume_m3_per_s = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        
+        self.pulse_file_radius = [5,5,6,6,6,7,7,7,7,7,8,8]
         self.pulse_file_vent_x = [200,200,200,200,200,200,200,200,200,200,200,200]
         self.pulse_file_vent_y = [200,200,200,200,200,200,200,200,200,200,200,200]
         self.pulse_file_len = 12
@@ -194,9 +218,9 @@ class Driver:
                 self.Grid.is_active_ui[x,y] = 0
                 # print(f'pulse_file_index: {self.pulse_file_index} index_x: {index_x} index_y: {index_y} x: {x} y: {y}')
                 # print(f'self.pulse_file_gaussian_filters[self.pulse_file_index]: {self.pulse_file_gaussian_filters[self.pulse_file_index]}')
-                self.Grid.pulse_volume[x,y] = pulse_m3_per_s * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
+                self.Grid.pulse_volume[x,y] = pulse_m3_per_s*self.grid_size_m_to_scaled_grid_size_m**3 * self.pulse_file_gaussian_filters[self.pulse_file_index][index_x][index_y]
     
-    def set_active_pulses_file(self,simulation_time,substeps,window):
+    def set_active_pulses_file(self,simulation_time,substeps):
         if(self.pulse_file_status != PulseFileStatus.END):
             if(simulation_time >= self.pulse_file_end_time[self.pulse_file_index]):
                 self.pulse_file_index += 1

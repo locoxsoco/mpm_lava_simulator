@@ -65,10 +65,14 @@ def configureParams(inParams, outParams):
     # the residual is chosed from a uniform random distribution between
     # the min and max value. To apply a single residual value set
     # both MIN_ and MAX_ to the same value.
-    inParams.min_residual = 3.0
-    inParams.max_residual = 3.0
-    inParams.min_residual = 0.003
-    inParams.max_residual = 0.003
+    # High viscosity
+    inParams.min_residual = 30.0
+    inParams.max_residual = 30.0
+    # Low viscosity
+    inParams.min_residual = 25.0
+    inParams.max_residual = 25.0
+    # inParams.min_residual = 0.3
+    # inParams.max_residual = 0.3
     #LOG_MEAN_RESIDUAL = 0.38
     #LOG_STD_DEV_RESIDUAL = 0.1
     #
@@ -90,6 +94,10 @@ def configureParams(inParams, outParams):
     inParams.max_total_volume = 300000
     inParams.min_total_volume = 300.0
     inParams.max_total_volume = 300.0
+    inParams.min_total_volume = 979200.0
+    inParams.max_total_volume = 979200.0
+    inParams.min_total_volume = 1181821696.0
+    inParams.max_total_volume = 1181821696.0
     #
     ################################################################################
     # The PULSE_VOLUME is the fraction of the total lava volume that gets erupted
@@ -103,8 +111,8 @@ def configureParams(inParams, outParams):
     # To apply a single PULSE_VOLUME, set both the MIN_ and MAX_ to the same value.
     inParams.min_pulse_volume = 100
     inParams.max_pulse_volume = 100
-    inParams.min_pulse_volume = 0.001
-    inParams.max_pulse_volume = 0.001
+    inParams.min_pulse_volume = 164141.90
+    inParams.max_pulse_volume = 164141.90
     #
 
     ########################

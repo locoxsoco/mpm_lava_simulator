@@ -27,9 +27,14 @@ class Driver:
         self.active_flow, self.inParams, self.outParams = initialize()
         configureParams(self.inParams, self.outParams)
         self.load_vent_data()
+        self.km_to_m = 1000.0
         # Read in the DEM using the gdal library
         self.Heightmap = Heightmap(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m)
-        self.Grid = Grid(n_grid,dim,self.Heightmap)
+        self.grid_size_to_km = self.Heightmap.hm_height_px*self.Heightmap.px_to_km/n_grid
+        # self.scaled_grid_size_m = self.grid_size_to_km*self.km_to_m
+        self.scaled_grid_size_m = 10.0
+        self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
+        self.Grid = Grid(n_grid,dim,self.Heightmap,self.scaled_grid_size_m)
         self.set_flow_params()
         # Initialize the lava flow data structures and initialize vent cell
         self.CAList = self.init_flow()
@@ -76,7 +81,7 @@ class Driver:
                     self.active_flow.residual = gennor(self.inParams.log_mean_residual, self.inParams.log_std_residual)
                 self.active_flow.residual = math.pow(self.active_flow.residual,10)
             else:
-                self.active_flow.residual = genunf(self.inParams.min_residual, self.inParams.max_residual)
+                self.active_flow.residual = genunf(self.inParams.min_residual*self.grid_size_m_to_scaled_grid_size_m, self.inParams.max_residual*self.grid_size_m_to_scaled_grid_size_m)
         else:
             self.active_flow.residual = self.inParams.residual
         
@@ -124,7 +129,7 @@ class Driver:
 
         return local_CAList
 
-    def pulse(self):
+    def pulse(self,global_delta_time):
         # vent cell gets a new pulse of lava to distribute
         self.current_vent = (self.current_vent + 1) % (self.active_flow.num_vents)
         
@@ -133,7 +138,7 @@ class Driver:
         
         if (not(self.pulseCount % 100)):
             print(f'[Driver] Vent: {self.active_flow.source[self.current_vent].easting} {self.active_flow.source[self.current_vent].northing} Active Cells: {self.ActiveCounter} Volume Remaining: {self.volumeRemaining} Pulse Count: {self.pulseCount}')
-            print(f'[Driver] self.Grid.eff_elev[215,215]: {self.Grid.eff_elev[215,215]} self.ActiveCounter: {self.ActiveCounter}')
+            # print(f'[Driver] self.Grid.eff_elev[215,215]: {self.Grid.eff_elev[215,215]} self.ActiveCounter: {self.ActiveCounter}')
         
         
         self.volumeRemaining,self.volumeErupted = pulse(
@@ -143,10 +148,11 @@ class Driver:
         self.Grid,              # (type=DataCell**)  2D Data Grid
         self.volumeRemaining,   # (type=double) Lava volume not yet erupted
         self.Grid.info,         # (type=double*) Metadata array
-        self.volumeErupted)
+        self.volumeErupted,
+        global_delta_time,
+        self.grid_size_m_to_scaled_grid_size_m)
         # print(f'[Driver] self.volumeRemaining: {self.volumeRemaining} active_flow.currentvolume: {self.active_flow.currentvolume}')
 
-        self.pulseCount+=1
         return
 
     def step(self):

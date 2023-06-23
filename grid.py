@@ -70,10 +70,10 @@ class Grid:
         self.cube_colors_lvl1.from_numpy(cube_colors_list_lvl1)
 
         self.curr_cube_positions = ti.Vector.field(dim, ti.f32, 8)
-        self.m_transforms_lvl0 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid*n_grid)
+        self.m_transforms_dem = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid*n_grid)
         self.n_grid = n_grid
         self.set_levels(heightmap)
-        self.calculate_m_transforms_lvl0()
+        self.calculate_m_transforms_dem()
         self.info = [None]*6
         self.info[0] = 0.0
         self.info[1] = self.grid_size_to_km
@@ -83,25 +83,25 @@ class Grid:
         self.info[5] = self.grid_size_to_km
     
     @ti.kernel
-    def calculate_m_transforms_lvl0(self):
-        for idx in self.m_transforms_lvl0:
+    def calculate_m_transforms_dem(self):
+        for idx in self.m_transforms_dem:
             i = idx//(self.n_grid*self.n_grid)
             j = (idx-self.n_grid*self.n_grid*i)//self.n_grid
             k = idx%self.n_grid
             if (self.F_grid_level[i,j,k]==0):
-                self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl0[idx] *= self.grid_size_to_km/2.0
-                self.m_transforms_lvl0[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km/2.0
-                self.m_transforms_lvl0[idx][1,3] = j*self.grid_size_to_km + self.grid_size_to_km/2.0
-                self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km/2.0
-                self.m_transforms_lvl0[idx][3,3] = 1
+                self.m_transforms_dem[idx] = ti.Matrix.identity(float,4)
+                self.m_transforms_dem[idx] *= self.grid_size_to_km/2.0
+                self.m_transforms_dem[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km/2.0
+                self.m_transforms_dem[idx][1,3] = j*self.grid_size_to_km + self.grid_size_to_km/2.0
+                self.m_transforms_dem[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km/2.0
+                self.m_transforms_dem[idx][3,3] = 1
             else:
-                self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl0[idx] *= self.grid_size_to_km/2.0
-                self.m_transforms_lvl0[idx][0,3] = 324534654
-                self.m_transforms_lvl0[idx][1,3] = 324534654
-                self.m_transforms_lvl0[idx][2,3] = 324534654
-                self.m_transforms_lvl0[idx][3,3] = 1
+                self.m_transforms_dem[idx] = ti.Matrix.identity(float,4)
+                self.m_transforms_dem[idx] *= self.grid_size_to_km/2.0
+                self.m_transforms_dem[idx][0,3] = 324534654
+                self.m_transforms_dem[idx][1,3] = 324534654
+                self.m_transforms_dem[idx][2,3] = 324534654
+                self.m_transforms_dem[idx][3,3] = 1
 
 
     @ti.kernel

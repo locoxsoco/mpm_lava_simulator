@@ -82,8 +82,16 @@ cube_colors_list_lvl2 = np.array([
 
 @ti.data_oriented
 class Grid:
-    def __init__(self,n_grid,dim,heightmap):
+    def __init__(self,n_grid,dim,heightmap,scaled_grid_size_m):
+        self.km_to_m = 1000.0
         self.grid_size_to_km = heightmap.hm_height_px*heightmap.px_to_km/n_grid
+        self.grid_size_to_m = self.grid_size_to_km * self.km_to_m
+        self.scaled_grid_size_m = scaled_grid_size_m
+        self.scaled_grid_size_km = self.scaled_grid_size_m/self.km_to_m
+        self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
+        self.grid_size_km_to_scaled_grid_size_km = self.scaled_grid_size_km/self.grid_size_to_km
+
+        self.cell_area_m = (self.scaled_grid_size_m)**2
 
         self.cube_positions_dem = ti.Vector.field(dim, ti.f32, 8)
         self.cube_positions_lava1 = ti.Vector.field(dim, ti.f32, 8)
@@ -99,19 +107,22 @@ class Grid:
         self.cube_colors_lvl1.from_numpy(cube_colors_list_lvl1)
         self.curr_cube_positions = ti.Vector.field(dim, ti.f32, 8)
 
-        self.m_transforms_lvl0 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
-        self.m_transforms_lvl1 = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
+        self.m_transforms_dem = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
+        self.m_transforms_lava = ti.Matrix.field(4,4,dtype=ti.f32,shape=n_grid*n_grid)
 
         self.n_grid = n_grid
 
         self.residual = ti.field(ti.f32, (n_grid, ) * (dim-1))
         self.eff_elev = ti.field(ti.f32, (n_grid, ) * (dim-1))
-        self.out_eff_elev = ti.field(ti.f32, (n_grid, ) * (dim-1))
+        self.new_eff_elev = ti.field(ti.f32, (n_grid, ) * (dim-1))
         self.dem_elev = ti.field(ti.f32, (n_grid, ) * (dim-1))
         self.neighborListElevDiff = ti.field(ti.f32, shape=(n_grid,n_grid,8))
         self.neighborListRow = ti.field(ti.f32, shape=(n_grid,n_grid,8))
         self.neighborListCol = ti.field(ti.f32, shape=(n_grid,n_grid,8))
         self.neighborListCounter = ti.field(ti.i32, shape=(n_grid,n_grid))
+
+        self.underground_m = ti.field(ti.f32, shape=())
+        self.underground_m[None] = 1000.0
 
         self.parentcodes = ti.field(ti.i32, (n_grid, ) * (dim-1))
         opRows = np.array([ 1,-1, 0, 0, 1, 1,-1,-1], dtype=np.int32)
@@ -129,11 +140,14 @@ class Grid:
         self.neighCodes.from_numpy(neighCodes)
         self.neighDistances.from_numpy(neighDistances)
 
+        self.c_factor = ti.field(ti.f32, shape=())
+        self.c_factor[None] = 1.0
+
 
         self.active = ti.field(ti.i32, (n_grid, ) * (dim-1))
         self.init_values(heightmap)
-        self.calculate_m_transforms_lvl0()
-        self.calculate_m_transforms_lvl1()
+        self.initialize_m_transforms_dem()
+        self.initialize_m_transforms_lava()
 
         # DEMGeoTransform[0] lower left x
         # DEMGeoTransform[1] w-e pixel resolution (positive value)
@@ -154,54 +168,89 @@ class Grid:
     def init_values(self,heightmap: ti.template()):
         for i,j in self.residual:
             self.residual[i,j] = 0.0
-            self.dem_elev[i,j] = heightmap.heightmap_positions[int((i/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_height_px)*heightmap.hm_width_px+int((j/self.n_grid+1.0/(2.0*self.n_grid))*heightmap.hm_width_px)][1]
+            self.dem_elev[i,j] = (heightmap.heightmap_positions[i*heightmap.hm_width_px+j][1]*self.km_to_m+self.underground_m[None])*self.grid_size_m_to_scaled_grid_size_m
             self.eff_elev[i,j] = self.dem_elev[i,j]
-            self.out_eff_elev[i,j] = self.dem_elev[i,j]
+            self.new_eff_elev[i,j] = self.eff_elev[i,j]
             self.parentcodes[i,j] = 0
             self.active[i,j] = -1
+            if(i==200 and j==200):
+                print(f'self.dem_elev[{i},{j}]: {self.dem_elev[i,j]}')
 
     @ti.kernel
-    def calculate_m_transforms_lvl0(self):
-        for idx in self.m_transforms_lvl0:
+    def initialize_m_transforms_dem(self):
+        for idx in self.m_transforms_dem:
             i = idx//self.n_grid
             k = idx%self.n_grid
-            self.m_transforms_lvl0[idx] = ti.Matrix.identity(float,4)
-            self.m_transforms_lvl0[idx] *= self.grid_size_to_km
-            self.m_transforms_lvl0[idx][1,1] = 1.0
-            self.m_transforms_lvl0[idx][1,1] *= self.dem_elev[i,k]
-            self.m_transforms_lvl0[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km
-            # self.m_transforms_lvl0[idx][1,3] = self.dem_elev[i,k] + self.grid_size_to_km
-            self.m_transforms_lvl0[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
-            self.m_transforms_lvl0[idx][3,3] = 1
+            self.m_transforms_dem[idx] = ti.Matrix.identity(float,4)
+            self.m_transforms_dem[idx] *= self.scaled_grid_size_km
+            self.m_transforms_dem[idx][1,1] = 1.0
+            self.m_transforms_dem[idx][1,1] *= self.dem_elev[i,k]/self.km_to_m
+            self.m_transforms_dem[idx][0,3] = i*self.scaled_grid_size_km
+            # self.m_transforms_dem[idx][1,3] = self.dem_elev[i,k]
+            self.m_transforms_dem[idx][2,3] = k*self.scaled_grid_size_km
+            self.m_transforms_dem[idx][3,3] = 1
+    
+    @ti.kernel
+    def initialize_m_transforms_lava(self):
+        for idx in self.m_transforms_lava:
+            i = idx//self.n_grid
+            k = idx%self.n_grid
+            self.m_transforms_lava[idx] = ti.Matrix.identity(float,4)
+            self.m_transforms_lava[idx] *= self.scaled_grid_size_km
+            self.m_transforms_lava[idx][0,3] = i*self.scaled_grid_size_km
+            self.m_transforms_lava[idx][1,3] = 654654654
+            self.m_transforms_lava[idx][2,3] = k*self.scaled_grid_size_km
+            self.m_transforms_lava[idx][3,3] = 1
+    
+    @ti.kernel
+    def calculate_m_transforms_dem(self):
+        for idx in self.m_transforms_dem:
+            i = idx//self.n_grid
+            k = idx%self.n_grid
+            self.m_transforms_dem[idx] = ti.Matrix.identity(float,4)
+            self.m_transforms_dem[idx] *= self.scaled_grid_size_km
+            self.m_transforms_dem[idx][1,1] = 1.0
+            self.m_transforms_dem[idx][1,1] *= self.dem_elev[i,k]/self.km_to_m
+            self.m_transforms_dem[idx][0,3] = i*self.scaled_grid_size_km
+            # self.m_transforms_dem[idx][1,3] = self.dem_elev[i,k]
+            self.m_transforms_dem[idx][2,3] = k*self.scaled_grid_size_km
+            self.m_transforms_dem[idx][3,3] = 1
 
     @ti.kernel
-    def calculate_m_transforms_lvl1(self):
-        for idx in self.m_transforms_lvl1:
+    def calculate_m_transforms_lava(self):
+        for idx in self.m_transforms_lava:
             i = idx//self.n_grid
             k = idx%self.n_grid
             thickness = self.eff_elev[i,k]-self.dem_elev[i,k]
-            if thickness > 0.00001:
-                self.m_transforms_lvl1[idx] = ti.Matrix.identity(float,4)
-                self.m_transforms_lvl1[idx] *= self.grid_size_to_km
-                self.m_transforms_lvl1[idx][1,1] = 1.0
-                self.m_transforms_lvl1[idx][1,1] *= thickness
-                self.m_transforms_lvl1[idx][0,3] = i*self.grid_size_to_km + self.grid_size_to_km
-                self.m_transforms_lvl1[idx][1,3] = self.dem_elev[i,k]
-                self.m_transforms_lvl1[idx][2,3] = k*self.grid_size_to_km + self.grid_size_to_km
-                self.m_transforms_lvl1[idx][3,3] = 1
+            if thickness > 0.0:
+                self.m_transforms_lava[idx][1,1] = 1.0
+                self.m_transforms_lava[idx][1,1] *= (thickness/self.km_to_m)
+                self.m_transforms_lava[idx][1,3] = (self.dem_elev[i,k]/self.km_to_m)
+            else:
+                self.m_transforms_lava[idx][1,3] = 654654654
+
+                # self.m_transforms_lava[idx] = ti.Matrix.identity(float,4)
+                # self.m_transforms_lava[idx] *= self.scaled_grid_size_km
+                # self.m_transforms_lava[idx][1,1] = 1.0
+                # self.m_transforms_lava[idx][1,1] *= thickness/self.km_to_m
+                # self.m_transforms_lava[idx][0,3] = i*self.scaled_grid_size_km
+                # self.m_transforms_lava[idx][1,3] = self.dem_elev[i,k]
+                # self.m_transforms_lava[idx][2,3] = k*self.scaled_grid_size_km
+                # self.m_transforms_lava[idx][3,3] = 1
 
     @ti.kernel
     def fill_residual(self,residual_value: float):
-        for i in range(self.info[4]):
-            for j in range(self.info[2]):
-                self.residual[i,j] = residual_value
+        for i,k in self.residual:
+            self.residual[i,k] = residual_value
 
     @ti.kernel
     def distribute(self):
         for i,k in self.residual:
             myResidual = self.residual[i,k]
             thickness = self.eff_elev[i,k] - self.dem_elev[i,k]
-            lavaOut = thickness - myResidual
+            lavaOut = (thickness - myResidual) * self.c_factor[None]
+            # if(i==200 and k==200):
+            #     print(f'lavaOut: {lavaOut} thickness: {thickness}')
 
             if(lavaOut>0):
                 # Find neighbor cells which are not parents and have lower elevation than active cell
@@ -212,8 +261,15 @@ class Grid:
                 for n in range(self.neighborListCounter[i,k]):
                     my_wt = self.neighborListElevDiff[i,k,n]
                     lavaIn = lavaOut * (my_wt / total_wt)
-                    self.eff_elev[int(self.neighborListRow[i,k,n]),int(self.neighborListCol[i,k,n])] += lavaIn
-                self.eff_elev[i,k] -= lavaOut
+                    self.new_eff_elev[int(self.neighborListRow[i,k,n]),int(self.neighborListCol[i,k,n])] += lavaIn
+                self.new_eff_elev[i,k] -= lavaOut
+    
+    @ti.kernel
+    def updateEffElev(self):
+        for i,k in self.residual:
+            # if(i==200 and k==200):
+            #     print(f'self.eff_elev[i,k]: {self.eff_elev[i,k]} self.new_eff_elev[i,k]: {self.new_eff_elev[i,k]}')
+            self.eff_elev[i,k] = self.new_eff_elev[i,k]
 
     @ti.func
     def neighbor_id(self,i,k):
