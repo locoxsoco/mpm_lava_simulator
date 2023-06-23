@@ -277,8 +277,8 @@ class Driver:
             self.pulse_file_radius[0],
             substeps)
         self.set_active_pulses_gaussian_kernel_upc(
-            235,
-            246,
+            400-182,
+            244,
             self.pulse_file_radius[0],
             substeps)
         self.set_active_pulses_gaussian_kernel_upc(
