@@ -171,7 +171,7 @@ class Grid:
         self.stefan_boltzmann_constant[None] = 5.68 * 10**(-8)
 
         self.rendering_lava_height_minimum_m[None] = 0.0
-        self.flux_height_minimum_m[None] = self.scaled_grid_size_m/10.0
+        self.flux_height_minimum_m[None] = self.scaled_grid_size_m/5.0
         self.update_temperature_lava_height_minimum_m[None] = 0.00
         self.update_heat_quantity_lava_height_minimum_m[None] = 0.00
         self.delta_total_height_min = self.scaled_grid_size_m/7.208175
