@@ -158,7 +158,7 @@ class Grid:
         # self.ambient_temperature = 298.15
         self.ambient_temperature[None] = 400.0
         self.solidification_temperature[None] = 950.0
-        self.extrusion_temperature[None] = 1360.0
+        self.extrusion_temperature[None] = 1200.0
         self.max_temperature[None] = 2000.0
         self.H2O[None] = 0.06325
         self.gravity[None] = 9.81
@@ -176,7 +176,7 @@ class Grid:
         self.update_heat_quantity_lava_height_minimum_m[None] = 0.00
         self.delta_total_height_min = self.scaled_grid_size_m/7.208175
         self.delta_total_height_max = self.scaled_grid_size_m/5.0
-        self.quality_tolerance[None] = 1.0
+        self.quality_tolerance[None] = 10.0
         self.global_delta_time_maximum_s[None] = 10.0
         self.global_delta_time[None] = self.global_delta_time_maximum_s[None]
 
@@ -307,6 +307,13 @@ class Grid:
             self.cube_colors_lava[pos_idx+5] = ti.Vector([1.0,0.0,0.0,1.0])
             self.cube_colors_lava[pos_idx+6] = ti.Vector([1.0,0.0,0.0,1.0])
             self.cube_colors_lava[pos_idx+7] = ti.Vector([1.0,0.0,0.0,1.0])
+    
+    @ti.kernel
+    def add_lava_upc(self):
+        for i,k in self.dem_elev:
+            if(self.dem_elev[i,k]<100):
+                self.is_active[i,k] = 5
+                self.pulse_volume[i,k] = 50.0
 
 
     @ti.kernel
@@ -421,8 +428,8 @@ class Grid:
                 self.delta_time[i,k] = self.global_delta_time_maximum_s[None]
             # if((i < 50 or k < 50) and self.delta_time[i,k] != self.global_delta_time_maximum_s[None]):
             #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
-            if(self.delta_time[i,k] < 1e-3):
-                print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]}')
+            # if(self.delta_time[i,k] < 1e-4):
+            #     print(f'i: {i} k: {k} self.delta_time[i,k]: {self.delta_time[i,k]} h: {h} q_tot: {q_tot} dem: {self.dem_elev[i,k]}')
     
     @ti.kernel
     def computeGlobalTimeStep(self) -> ti.f32:

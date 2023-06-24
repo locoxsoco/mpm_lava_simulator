@@ -9,7 +9,7 @@ from MAGFLOW.driver import Driver as MAGFLOWDriver, PulseFileStatus
 from utils import *
 from enum import Enum
 
-ti.init(arch=ti.vulkan)
+ti.init(arch=ti.gpu)
 particles_pos = ti.Vector.field(3, dtype=ti.f32, shape = 1)
 vector_outside = ti.Vector([-9999, -9999, -9999])
 is_particles_outside = False
@@ -251,7 +251,7 @@ def main():
         camera.position(grid.scaled_grid_size_km*200, heightmap.hm_elev_range_km*grid.grid_size_km_to_scaled_grid_size_km*7.5, grid.scaled_grid_size_km*200)
         camera.lookat(grid.scaled_grid_size_km*200 +0.0001, 0.00001, grid.scaled_grid_size_km*200)
     camera.fov(55)
-    substeps = 20
+    substeps = 5
     simulation_time = 0.0
     prev_solver_index_file = 0
     while window.running:
@@ -265,12 +265,16 @@ def main():
                 if window.is_pressed(ti.ui.SPACE) and run_state != 1:
                     run_state = 1
                     init_sim_time = time.time()
+                if window.is_pressed(ti.ui.ALT):
+                    grid.add_lava_upc()
+                if window.is_pressed(ti.ui.UP):
+                    substeps = 20
                 rayPoint, rayDirection = pixelToRay(camera, mouse[0], mouse[1], 1, 1, window.get_window_shape())
                 # print(f'rayPoint: {rayPoint} rayDirection: {rayDirection}')
                 validAnchor,ti_vector_pos = solver.Grid.Intersect(rayPoint,rayDirection)
                 if(window.is_pressed(ti.ui.LMB) and validAnchor):
                     ti_vector_pos_grid = ti_vector_pos/grid.scaled_grid_size_km
-                    # print(f'i,k: {int(ti_vector_pos_grid[0])},{int(ti_vector_pos_grid[2])} lava thickness: {solver.Grid.lava_thickness[int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2])]}')
+                    print(f'i,k: {int(ti_vector_pos_grid[0])},{int(ti_vector_pos_grid[2])} lava thickness: {solver.Grid.lava_thickness[int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2])]}')
                     # print(f'i,k: {200},{200} lava thickness: {solver.Grid.lava_thickness[200,200]}')
                     # solver.Grid.calculate_m_transforms_lvl2(int(ti_vector_pos_grid[0]),int(ti_vector_pos_grid[2]))
                     if (brush_type == Brush.DEM):
@@ -376,10 +380,10 @@ def main():
             if(run_state == 2):
                 run_state = 0
         render(camera,window,scene,canvas,heightmap,grid,simulation_method)
-        if(simulation_method == 'MAGFLOW'):
-            substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
-        elif(simulation_method == 'MOLASSES'):
-            show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
+        # if(simulation_method == 'MAGFLOW'):
+        #     substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
+        # elif(simulation_method == 'MOLASSES'):
+        #     show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
         # print(f'solver.Grid: {solver.Grid.lava_density[None]}')
         # print(f'[RUNSIMULATION] solver.active_flow.pulsevolume: {solver.active_flow.pulsevolume}')
         # if(simulation_method == 'MAGFLOW'):
