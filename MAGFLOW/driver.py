@@ -1,8 +1,6 @@
 import math
 import numpy as np
 import scipy.stats as st
-from MAGFLOW.initialize import initialize, Vent
-from MAGFLOW.magflow_input_file import configureParams
 from MAGFLOW.heightmap import Heightmap
 from MAGFLOW.grid import Grid
 from enum import Enum
@@ -40,10 +38,6 @@ class ActiveList:
 
 class Driver:
     def __init__(self,heightmap_path,dim,hm_elev_min_m,hm_elev_max_m,n_grid):
-        # Initialize variables with values from the config file
-        self.active_flow, self.inParams, self.outParams = initialize()
-        configureParams(self.inParams, self.outParams)
-        self.load_vent_data()
         self.km_to_m = 1000.0
         # Read in the DEM using the gdal library
         self.Heightmap = Heightmap(heightmap_path,dim,hm_elev_min_m,hm_elev_max_m)
@@ -52,13 +46,6 @@ class Driver:
         self.scaled_grid_size_m = 10.0
         self.grid_size_m_to_scaled_grid_size_m = self.scaled_grid_size_m/(self.grid_size_to_km*self.km_to_m)
         self.Grid = Grid(n_grid,dim,self.Heightmap,self.scaled_grid_size_m)
-        self.set_flow_params()
-        # Initialize the lava flow data structures and initialize vent cell
-        self.CAList = self.init_flow()
-        self.CAListSize = 0
-        self.current_vent = -1
-        self.pulseCount = 0
-        self.ActiveCounter = 0
 
         # Read pulse txt file
         self.pulse_file_init_time = [0.0,600.0,1200.0,1800.0,2400.0,3000.0,3600.0,4200.0,4800.0,5400.0,6000.0,6600.0]
@@ -137,17 +124,6 @@ class Driver:
 
         self.n_steps = 0
         self.time = 0.0
-    
-    def load_vent_data(self):
-        self.active_flow.num_vents = 1
-        self.active_flow.source = []
-        for _ in range(self.active_flow.num_vents):
-            self.active_flow.source.append(Vent())
-        self.active_flow.source[0].easting = 20.0
-        self.active_flow.source[0].northing = 20.0
-        self.active_flow.source[0].easting = 18.52
-        self.active_flow.source[0].northing = 18.52
-        print(f'self.active_flow.source[0].easting: {self.active_flow.source[0].easting} self.active_flow.source[0].now: {self.active_flow.source[0].row}')
     
     def set_flow_params(self):        
         print(f'self.inParams.min_total_volume: {self.inParams.min_total_volume} self.inParams.max_total_volume: {self.inParams.max_total_volume}')
