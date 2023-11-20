@@ -251,10 +251,11 @@ def main():
         camera.position(grid.scaled_grid_size_km*200, heightmap.hm_elev_range_km*grid.grid_size_km_to_scaled_grid_size_km*7.5, grid.scaled_grid_size_km*200)
         camera.lookat(grid.scaled_grid_size_km*200 +0.0001, 0.00001, grid.scaled_grid_size_km*200)
     camera.fov(55)
-    substeps = 20
+    substeps = 5
     simulation_time = 0.0
     prev_solver_index_file = 0
     while window.running:
+        # i_time = time.time()
         if(simulation_method == 'MAGFLOW'):
             mouse = window.get_cursor_pos()
             # print(dir(ti.ui))
@@ -317,6 +318,8 @@ def main():
         elif(debug_grid_lava_heatmap_checkbox):
             if(simulation_method == 'MAGFLOW'):
                 solver.Grid.calculate_lava_height_and_color()
+        # print(f'[CALCULATE] {time.time()-i_time}')
+        
         if(simulation_method == 'MOLASSES'):
             if(run_state == 1 or run_state == 2):
                 solver.pulse(global_delta_time)
@@ -328,6 +331,7 @@ def main():
         elif(simulation_method == 'MAGFLOW'):
             if(run_state == 1 or run_state == 2):
                 solver.set_active_pulses_file(simulation_time,substeps)
+                # ini_time = time.time()
                 for _ in range(substeps):
                     # 1. Compute volumetrix lava flux for cell vents
                     solver.Grid.pulse()
@@ -343,7 +347,7 @@ def main():
                     # ini_global_time = time.time()
                     global_delta_time = solver.Grid.computeGlobalTimeStep()
                     # global_delta_time = solver.Grid.computeGlobalTimeStep()
-                    # print(f'[Driver] global_delta_time: {global_delta_time} index_global: {index_global_x},{index_global_y}')
+                    # print(f'[Driver] global_delta_time: {global_delta_time}')
                     solver.Grid.global_delta_time[None] = global_delta_time                    
                     # print(f'[GLOBAL] {time.time()-ini_global_time}')
                     # print(f'[Driver] global_delta_time: {solver.Grid.global_delta_time} volumeErupted: {grid.global_volume_lava_erupted_m3}')
@@ -364,7 +368,9 @@ def main():
                     # solid_lava_time = time.time()
                     solver.Grid.computeLavaSolidification()
                     # print(f'[SOLIDLAVA] {time.time()-solid_lava_time}')
+                    # print(f'[STEP TIME] {time.time()-ini_time}')
                     # solver.Grid.updateTemperature()
+                # print(f'[STEP TIME] {time.time()-ini_time}')
             if(run_state == 1 or run_state == 2):
                 if(debug_grid_lava_checkbox):
                     solver.Grid.calculate_m_transforms_lava()
@@ -375,7 +381,9 @@ def main():
                     solver.Grid.calculate_m_transforms_dem()
             if(run_state == 2):
                 run_state = 0
+        # render_time = time.time()
         render(camera,window,scene,canvas,heightmap,grid,simulation_method)
+        # print(f'[RENDER] {(time.time()-render_time)*1000.0} ms')
         if(simulation_method == 'MAGFLOW'):
             substeps = show_options(gui,substeps,solver.Grid,simulation_time,simulation_method)
         elif(simulation_method == 'MOLASSES'):
@@ -466,6 +474,7 @@ def main():
         #     if(simulation_time >= 7200.0 and run_state != 0):
         #         run_state = 0
         #         print(f'[SIMULATION] Simulation time: {round(time.time()-init_sim_time,2)} s')
+        # print(f'[I] {time.time()-i_time}')
         window.show()
 
 if __name__ == '__main__':

@@ -363,10 +363,13 @@ class Grid:
 
     @ti.kernel
     def computeFluxTransfers(self):
+        # height, width, neighbors = self.lava_flux.shape[0], self.lava_flux.shape[1], self.lava_flux.shape[2]
         for i,k,n in self.lava_flux:
+            # print(f'height: {height} width: {width} neighbors: {neighbors}')
+            # print(f'i: {i} k: {k} n:{n}')
             cur_cell_total_height = self.dem_elev[i,k] + self.solid_lava_thickness[i,k]
             i_n,k_n = int(i+self.nRows[n]), int(k+self.nCols[n])
-            if(i_n < 0 or k_n < 0 or i_n > self.n_grid or k_n > self.n_grid):
+            if(i_n < 0 or k_n < 0 or i_n >= self.n_grid or k_n >= self.n_grid):
                 self.lava_flux[i,k,n] = 0.0
             else:
                 neigh_cell_total_height = self.dem_elev[i_n,k_n] + self.solid_lava_thickness[i_n,k_n]
@@ -396,8 +399,8 @@ class Grid:
                     if(h>h_cr):
                         q = (S_y * h_cr**2 * delta_x)/(3.0*eta) * (a**3 - 3.0/2.0*a**2 + 1.0/2.0)
                         # print(f'q: {q}')
-                        if(ti.math.isinf(q) or ti.math.isnan(q)):
-                            print(f'i,k: {i},{k} i_n,k_n: {i_n},{k_n} S_y: {S_y} T: {T} h: {h} h_cr: {h_cr} eta: {eta} a: {a}')
+                        # if(ti.math.isinf(q) or ti.math.isnan(q)):
+                        #     print(f'i,k: {i},{k} i_n,k_n: {i_n},{k_n} S_y: {S_y} T: {T} h: {h} h_cr: {h_cr} eta: {eta} a: {a}')
                         self.lava_flux[i,k,n] = q
                         # print(f'h_cr: {h_cr} h: {h} delta_x: {delta_x} delta_h: {delta_h} a: {a} q: {q} i: {i} k: {k} i_n: {i_n} k_n: {k_n}')
                     else:
@@ -449,9 +452,9 @@ class Grid:
             #     A = self.cell_area_m[None]
             #     curr_temperature = self.heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
             #     self.temperature[i,k] = ti.max(self.ambient_temperature[None],ti.min(curr_temperature,self.max_temperature[None]))
-            if(ti.math.isnan(delta_lava_thickness)):
-                print(f'i: {i} k: {k} q_tot:{q_tot} delta_lava_thickness: {delta_lava_thickness} self.delta_time[i,k]: {self.delta_time[i,k]} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
-                print(f'i: {i} k: {k} self.lava_flux[i,k,0]: {self.lava_flux[i,k,0]} self.lava_flux[i,k,1]: {self.lava_flux[i,k,1]} self.lava_flux[i,k,2]: {self.lava_flux[i,k,2]} self.lava_flux[i,k,3]: {self.lava_flux[i,k,3]} self.lava_flux[i,k,4]: {self.lava_flux[i,k,4]} self.lava_flux[i,k,5]: {self.lava_flux[i,k,5]} self.lava_flux[i,k,6]: {self.lava_flux[i,k,6]} self.lava_flux[i,k,7]: {self.lava_flux[i,k,7]}')
+            # if(ti.math.isnan(delta_lava_thickness)):
+            #     print(f'i: {i} k: {k} q_tot:{q_tot} delta_lava_thickness: {delta_lava_thickness} self.delta_time[i,k]: {self.delta_time[i,k]} self.lava_thickness[i,k]: {self.lava_thickness[i,k]}')
+            #     print(f'i: {i} k: {k} self.lava_flux[i,k,0]: {self.lava_flux[i,k,0]} self.lava_flux[i,k,1]: {self.lava_flux[i,k,1]} self.lava_flux[i,k,2]: {self.lava_flux[i,k,2]} self.lava_flux[i,k,3]: {self.lava_flux[i,k,3]} self.lava_flux[i,k,4]: {self.lava_flux[i,k,4]} self.lava_flux[i,k,5]: {self.lava_flux[i,k,5]} self.lava_flux[i,k,6]: {self.lava_flux[i,k,6]} self.lava_flux[i,k,7]: {self.lava_flux[i,k,7]}')
     
     @ti.kernel
     def computeHeatRadiationLoss(self):
