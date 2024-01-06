@@ -77,39 +77,45 @@ def computeFluxTransfers(
     H2O: ti.f32
 ):
     # height, width, neighbors = lava_flux.shape[0], lava_flux.shape[1], lava_flux.shape[2]
-    for i,k,n in lava_flux:
-        cur_cell_total_height = dem_elev[i,k] + solid_lava_thickness[i,k]
-        i_n,k_n = int(i+neighRows[n]), int(k+neighCols[n])
-        if(i_n < 0 or k_n < 0 or i_n >= n_grid or k_n >= n_grid):
-            lava_flux[i,k,n] = 0.0
+    for i, k, n in lava_flux:
+        cur_cell_total_height = dem_elev[i, k] + solid_lava_thickness[i, k]
+        i_n, k_n = int(i+neighRows[n]), int(k+neighCols[n])
+        if (i_n < 0 or k_n < 0 or i_n >= n_grid or k_n >= n_grid):
+            lava_flux[i, k, n] = 0.0
         else:
-            neigh_cell_total_height = dem_elev[i_n,k_n] + solid_lava_thickness[i_n,k_n]
+            neigh_cell_total_height = dem_elev[i_n,
+                                               k_n] + solid_lava_thickness[i_n, k_n]
             delta_z = neigh_cell_total_height - cur_cell_total_height
-            delta_h = lava_thickness[i_n,k_n] - lava_thickness[i,k]
-            h = lava_thickness[i,k]
-            T = temperature[i,k]
+            delta_h = lava_thickness[i_n, k_n] - lava_thickness[i, k]
+            h = lava_thickness[i, k]
+            T = temperature[i, k]
             delta_x_sign = -1
-            if((delta_z+delta_h) > 0):
-                h = lava_thickness[i_n,k_n]
-                T = temperature[i_n,k_n]
+            if ((delta_z+delta_h) > 0):
+                h = lava_thickness[i_n, k_n]
+                T = temperature[i_n, k_n]
                 delta_x_sign = 1
-            
-            delta_total_height_minimum_m = (quality_tolerance-1)/9.0*(delta_total_height_max-delta_total_height_min)+delta_total_height_min
-            if (h<=flux_height_minimum_m or ti.abs(delta_z+delta_h) < delta_total_height_minimum_m):
-                lava_flux[i,k,n] = 0.0
+
+            delta_total_height_minimum_m = (quality_tolerance-1)/9.0*(
+                delta_total_height_max-delta_total_height_min)+delta_total_height_min
+            if (h <= flux_height_minimum_m or ti.abs(delta_z+delta_h) < delta_total_height_minimum_m):
+                lava_flux[i, k, n] = 0.0
             else:
                 rho = lava_density
                 g = gravity
                 delta_x = delta_x_sign * neighDistances[n] * scaled_grid_size_m
                 S_y = 10.0**(13.00997 - 0.0089*T)
-                eta = 10.0**(-4.643 + (5812.44 - 427.04*H2O)/(T - 499.31 + 28.74*ti.log(H2O)))
-                h_cr = S_y * (ti.math.sqrt(delta_z**2 + delta_x**2)) / (rho*g*delta_x_sign*(delta_z+delta_h))
+                eta = 10.0**(-4.643 + (5812.44 - 427.04*H2O) /
+                             (T - 499.31 + 28.74*ti.log(H2O)))
+                h_cr = S_y * (ti.math.sqrt(delta_z**2 + delta_x**2)
+                              ) / (rho*g*delta_x_sign*(delta_z+delta_h))
                 a = h/h_cr
-                if(h>h_cr):
-                    q = (S_y * h_cr**2 * delta_x)/(3.0*eta) * (a**3 - 3.0/2.0*a**2 + 1.0/2.0)
-                    lava_flux[i,k,n] = q
+                if (h > h_cr):
+                    q = (S_y * h_cr**2 * delta_x)/(3.0*eta) * \
+                        (a**3 - 3.0/2.0*a**2 + 1.0/2.0)
+                    lava_flux[i, k, n] = q
                 else:
-                    lava_flux[i,k,n] = 0.0
+                    lava_flux[i, k, n] = 0.0
+
 
 @ti.kernel
 def computeTimeSteps(
@@ -121,17 +127,18 @@ def computeTimeSteps(
     global_delta_time_maximum_s: ti.f32,
     flux_height_minimum_m: ti.f32
 ):
-    for i,k in delta_time:
+    for i, k in delta_time:
         c = delta_time_c
-        h = lava_thickness[i,k]
+        h = lava_thickness[i, k]
         A = cell_area_m
         q_tot = 0.0
         for n in ti.static(range(8)):
-            q_tot += lava_flux[i,k,n]
-        if q_tot<0.0 and h>flux_height_minimum_m:
-            delta_time[i,k] = c*h*A/ti.abs(q_tot)
+            q_tot += lava_flux[i, k, n]
+        if q_tot < 0.0 and h > flux_height_minimum_m:
+            delta_time[i, k] = c*h*A/ti.abs(q_tot)
         else:
-            delta_time[i,k] = global_delta_time_maximum_s
+            delta_time[i, k] = global_delta_time_maximum_s
+
 
 @ti.kernel
 def computeGlobalTimeStep(
@@ -139,9 +146,10 @@ def computeGlobalTimeStep(
     global_delta_time_maximum_s: ti.f32
 ):
     global_delta_time = global_delta_time_maximum_s
-    for i,k in delta_time:
-        ti.atomic_min(global_delta_time, delta_time[i,k])
-    delta_time[0,0] = global_delta_time
+    for i, k in delta_time:
+        ti.atomic_min(global_delta_time, delta_time[i, k])
+    delta_time[0, 0] = global_delta_time
+
 
 @ti.kernel
 def computeNewLavaThickness(
@@ -150,14 +158,15 @@ def computeNewLavaThickness(
     global_delta_time: ti.f32,
     cell_area_m: ti.f32
 ):
-    for i,k in lava_thickness:
+    for i, k in lava_thickness:
         q_tot = 0.0
         for n in ti.static(range(8)):
-            q_tot += lava_flux[i,k,n]
+            q_tot += lava_flux[i, k, n]
         delta_lava_thickness = q_tot*global_delta_time/cell_area_m
-        lava_thickness[i,k] += delta_lava_thickness
-        if(lava_thickness[i,k]<=0):
-            lava_thickness[i,k] = 0.0
+        lava_thickness[i, k] += delta_lava_thickness
+        if (lava_thickness[i, k] <= 0):
+            lava_thickness[i, k] = 0.0
+
 
 @ti.kernel
 def computeHeatRadiationLoss(
@@ -179,44 +188,48 @@ def computeHeatRadiationLoss(
     stefan_boltzmann_constant: ti.f32,
     update_heat_quantity_lava_height_minimum_m: ti.f32
 ):
-    for i,k in lava_thickness:
+    for i, k in lava_thickness:
         delta_Q_t_m = 0.0
         for n in ti.static(range(8)):
-            i_n,k_n = int(i+neighRows[n]), int(k+neighCols[n])
-            q_i = lava_flux[i,k,n]
-            if(q_i>0):
-                delta_Q_t_m += q_i*temperature[i_n,k_n]
+            i_n, k_n = int(i+neighRows[n]), int(k+neighCols[n])
+            q_i = lava_flux[i, k, n]
+            if (q_i > 0):
+                delta_Q_t_m += q_i*temperature[i_n, k_n]
             else:
-                delta_Q_t_m += q_i*temperature[i,k]
+                delta_Q_t_m += q_i*temperature[i, k]
         rho = lava_density
         delta_Q_t_m *= rho * c_v * global_delta_time
-        
+
         epsilon = emissivity
         cooling_factor = cooling_accelerator_factor
         A = cell_area_m
         # Stefan–Boltzmann
         sigma = stefan_boltzmann_constant
         delta_Q_t_r = 0.0
-        if lava_thickness[i,k] > update_heat_quantity_lava_height_minimum_m:
-            delta_Q_t_r = epsilon * A * sigma * temperature[i,k]**4 * global_delta_time * 1.8**cooling_factor
+        if lava_thickness[i, k] > update_heat_quantity_lava_height_minimum_m:
+            delta_Q_t_r = epsilon * A * sigma * \
+                temperature[i, k]**4 * global_delta_time * 1.8**cooling_factor
 
-        heat_quantity[i,k] += delta_Q_t_m - delta_Q_t_r
-        
-        if(heat_quantity[i,k]<0):
-            heat_quantity[i,k] = 0.0
-            new_temperature[i,k] = ambient_temperature
+        heat_quantity[i, k] += delta_Q_t_m - delta_Q_t_r
+
+        if (heat_quantity[i, k] < 0):
+            heat_quantity[i, k] = 0.0
+            new_temperature[i, k] = ambient_temperature
         else:
-            h_t_dt = lava_thickness[i,k]
-            curr_temperature = heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
-            new_temperature[i,k] = ti.max(ambient_temperature,ti.min(curr_temperature,max_temperature))
+            h_t_dt = lava_thickness[i, k]
+            curr_temperature = heat_quantity[i, k] / (rho * c_v * h_t_dt * A)
+            new_temperature[i, k] = ti.max(
+                ambient_temperature, ti.min(curr_temperature, max_temperature))
+
 
 @ti.kernel
 def updateTemperature(
     temperature: ti.types.ndarray(dtype=ti.f32, ndim=2),
     new_temperature: ti.types.ndarray(dtype=ti.f32, ndim=2)
 ):
-    for i,k in temperature:
-        temperature[i,k] = new_temperature[i,k]
+    for i, k in temperature:
+        temperature[i, k] = new_temperature[i, k]
+
 
 @ti.kernel
 def computeLavaSolidification(
@@ -234,23 +247,26 @@ def computeLavaSolidification(
     cell_area_m: ti.f32,
     global_delta_time: ti.f32
 ):
-    for i,k in temperature:
-        if (temperature[i,k] < solidification_temperature):
+    for i, k in temperature:
+        if (temperature[i, k] < solidification_temperature):
             epsilon = emissivity
             sigma = stefan_boltzmann_constant
             rho = lava_density
-            new_solid_lava = (epsilon * sigma * solidification_temperature**3 * global_delta_time) / (rho * c_v)
-            if(lava_thickness[i,k] > new_solid_lava):
-                solid_lava_thickness[i,k] += new_solid_lava
-                lava_thickness[i,k] -= new_solid_lava
-                h_t_dt = lava_thickness[i,k]
+            new_solid_lava = (
+                epsilon * sigma * solidification_temperature**3 * global_delta_time) / (rho * c_v)
+            if (lava_thickness[i, k] > new_solid_lava):
+                solid_lava_thickness[i, k] += new_solid_lava
+                lava_thickness[i, k] -= new_solid_lava
+                h_t_dt = lava_thickness[i, k]
                 A = cell_area_m
-                curr_temperature = heat_quantity[i,k] / (rho * c_v * h_t_dt * A)
-                temperature[i,k] = ti.max(ambient_temperature,ti.min(curr_temperature,max_temperature))
+                curr_temperature = heat_quantity[i,
+                                                 k] / (rho * c_v * h_t_dt * A)
+                temperature[i, k] = ti.max(ambient_temperature, ti.min(
+                    curr_temperature, max_temperature))
             else:
-                solid_lava_thickness[i,k] += lava_thickness[i,k]
-                lava_thickness[i,k] = 0.0
-                temperature[i,k] = ambient_temperature
+                solid_lava_thickness[i, k] += lava_thickness[i, k]
+                lava_thickness[i, k] = 0.0
+                temperature[i, k] = ambient_temperature
 
 # computeFluxTransfers(
 #     lava_flux,
@@ -332,6 +348,7 @@ def computeLavaSolidification(
 #     cell_area_m,
 #     global_delta_time
 # )
+
 
 mod = ti.aot.Module(ti.vulkan)
 mod.add_kernel(computeFluxTransfers)
