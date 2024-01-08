@@ -268,6 +268,124 @@ def computeLavaSolidification(
                 lava_thickness[i, k] = 0.0
                 temperature[i, k] = ambient_temperature
 
+@ti.func
+def addNeighbor(
+    parentcodes: ti.types.ndarray(dtype=ti.i32, ndim=2),
+    eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    neighborListElevDiff: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListRow: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListCol: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    aRow: ti.i32,
+    aCol: ti.i32,
+    opRow: ti.i32,
+    opCol: ti.i32,
+    neighCode: ti.i32,
+    distance: ti.f32,
+    neighborCount: ti.i32
+):
+    nRow, nCol = aRow + opRow, aCol + opCol
+    code = parentcodes[aRow,aCol] & neighCode
+    if not(code) and nRow >= 0 and nRow < 400 and nCol >=0 and nRow < 400: # neigh cell is not the parent of active cell
+        if eff_elev[aRow,aCol] > eff_elev[nRow,nCol]: # active cell is higher than SW neighbor
+            # Calculate elevation difference between active and neighbor
+            neighborListElevDiff[aRow,aCol,neighborCount] = (eff_elev[aRow,aCol] - eff_elev[nRow,nCol])/distance
+            neighborListRow[aRow,aCol,neighborCount] = nRow
+            neighborListCol[aRow,aCol,neighborCount] = nCol
+            neighborCount += 1
+    return neighborCount
+
+@ti.func
+def neighbor_id(
+    parentcodes: ti.types.ndarray(dtype=ti.i32, ndim=2),
+    eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    neighborListElevDiff: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListRow: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListCol: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    opRows: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    opCols: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    neighCodes: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    neighDistances: ti.types.ndarray(dtype=ti.f32, ndim=1),
+    neighborListCounter: ti.types.ndarray(dtype=ti.i32, ndim=2),
+    i,
+    k
+):
+    neighborCount = 0
+    aRow,aCol = i,k
+
+    for n in range(8):
+        neighborCount = addNeighbor(
+            parentcodes,
+            eff_elev,
+            neighborListElevDiff,
+            neighborListRow,
+            neighborListCol,
+            aRow,
+            aCol,
+            opRows[n],
+            opCols[n],
+            neighCodes[n],
+            neighDistances[n],
+            neighborCount
+        )
+
+    neighborListCounter[i,k] = neighborCount
+
+@ti.kernel
+def distribute(
+    residual: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    dem_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    parentcodes: ti.types.ndarray(dtype=ti.i32, ndim=2),
+    opRows: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    opCols: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    neighCodes: ti.types.ndarray(dtype=ti.i32, ndim=1),
+    neighDistances: ti.types.ndarray(dtype=ti.f32, ndim=1),    
+    neighborListElevDiff: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListRow: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListCol: ti.types.ndarray(dtype=ti.f32, ndim=3),
+    neighborListCounter: ti.types.ndarray(dtype=ti.i32, ndim=2),
+    c_factor: ti.f32,
+    new_eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2)
+):
+    for i,k in residual:
+        myResidual = residual[i,k]
+        thickness = eff_elev[i,k] - dem_elev[i,k]
+        lavaOut = (thickness - myResidual) * c_factor
+
+        if(lavaOut>0):
+            # Find neighbor cells which are not parents and have lower elevation than active cell
+            # Automata Center Cell (parent)
+            neighbor_id(
+                parentcodes,
+                eff_elev,
+                neighborListElevDiff,
+                neighborListRow,
+                neighborListCol,
+                opRows,
+                opCols,
+                neighCodes,
+                neighDistances,
+                neighborListCounter,
+                i,
+                k
+            )
+            total_wt = 0.0
+            for n in range(neighborListCounter[i,k]):
+                total_wt += neighborListElevDiff[i,k,n]
+            for n in range(neighborListCounter[i,k]):
+                my_wt = neighborListElevDiff[i,k,n]
+                lavaIn = lavaOut * (my_wt / total_wt)
+                new_eff_elev[int(neighborListRow[i,k,n]),int(neighborListCol[i,k,n])] += lavaIn
+            new_eff_elev[i,k] -= lavaOut
+
+@ti.kernel
+def updateEffElev(
+    eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    new_eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2)
+):
+    for i,k in eff_elev:
+        eff_elev[i,k] = new_eff_elev[i,k]
+
 # computeFluxTransfers(
 #     lava_flux,
 #     dem_elev,
@@ -358,4 +476,6 @@ mod.add_kernel(computeNewLavaThickness)
 mod.add_kernel(computeHeatRadiationLoss)
 mod.add_kernel(updateTemperature)
 mod.add_kernel(computeLavaSolidification)
+mod.add_kernel(distribute)
+mod.add_kernel(updateEffElev)
 mod.archive("module.tcm")
