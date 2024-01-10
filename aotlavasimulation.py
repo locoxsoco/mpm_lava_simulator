@@ -332,7 +332,8 @@ def neighbor_id(
 
 @ti.kernel
 def distribute(
-    residual: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    # residual: ti.types.ndarray(dtype=ti.f32, ndim=2),
+    residual: ti.f32,
     eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
     dem_elev: ti.types.ndarray(dtype=ti.f32, ndim=2),
     parentcodes: ti.types.ndarray(dtype=ti.i32, ndim=2),
@@ -347,8 +348,8 @@ def distribute(
     c_factor: ti.f32,
     new_eff_elev: ti.types.ndarray(dtype=ti.f32, ndim=2)
 ):
-    for i,k in residual:
-        myResidual = residual[i,k]
+    for i,k in dem_elev:
+        myResidual = residual
         thickness = eff_elev[i,k] - dem_elev[i,k]
         lavaOut = (thickness - myResidual) * c_factor
 
